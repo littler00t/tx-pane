@@ -116,6 +116,32 @@ tx-pane run --kill-and-run "$pane" "npm test"
 tmux attach -t tx-pane                  # all tx-pane panes live in one tmux session
 ```
 
+## Use with Claude Code
+
+This repo ships **[Claude Code](https://claude.com/claude-code) skills** under
+[`.claude/skills/`](.claude/skills), so once you've cloned it, Claude Code picks
+them up automatically — no extra setup. Open the repo in Claude Code and either
+type the slash command or just ask in plain language:
+
+| Skill | Slash command | What it does |
+|---|---|---|
+| **Setup** | `/tx-pane-setup` | First-time install: checks `uv`/`tmux`/Python, puts `tx-pane` on your `PATH`, and runs a real marker-protocol smoke test. Start here. |
+| **Demo** | `/tx-pane-demo` | A live **co-working session** — Claude drives a pane while you `tmux attach -t tx-pane` to watch and take over, showcasing `handoff`/`resume`. |
+| **Run** | `/tx-pane-run <task>` | Hand Claude a terminal task; it executes it through a tx-pane session following the [agent playbook](docs/tx-doc-agent-playbook.md) best practices (named panes, real exit codes, compaction, safe secrets). |
+
+```text
+# In Claude Code, get going in three steps:
+/tx-pane-setup                              # install + verify
+/tx-pane-demo                               # see it in action
+/tx-pane-run "build the project and run the tests, report failures"
+```
+
+Plain-language requests work too — e.g. *"set up tx-pane for me"* or *"run the
+test suite through tx-pane and tell me what failed"* — Claude matches the right
+skill from its description. The skills lean on [`CLAUDE.md`](CLAUDE.md) (the
+agent decision table) and the docs below, so Claude drives `tx-pane` the way
+it's meant to be driven.
+
 ## Core concepts
 
 ### Panes are the unit of work
