@@ -1,6 +1,6 @@
 """tx_core.commands.panes — pane-lifecycle commands (new / ls / kill / status / restart / info)
 
-Extracted verbatim from the monolithic `tx` script during the modular
+Extracted verbatim from the monolithic `tx-pane` script during the modular
 refactor. Each `@cli.command()` registers itself on the shared `cli`
 root group on import.
 """
@@ -17,8 +17,8 @@ from tx_core.commands._common import *  # noqa: F401,F403
     help=(
         "Create a pane. Name is optional; a pane id is generated if omitted (e.g. p1).\n\n"
         "Returns the pane id on one line. Always capture this for subsequent commands.\n"
-        "All panes live in the tmux session defined by config (default: 'tx').\n"
-        "Attach any time with: tmux attach -t tx\n\n"
+        "All panes live in the tmux session defined by config (default: 'tx-pane').\n"
+        "Attach any time with: tmux attach -t tx-pane\n\n"
         "--cwd <path>  start the shell in <path>"
     ),
 )
@@ -120,7 +120,7 @@ def cmd_new(name: str | None, cwd: str | None, shell: str | None) -> None:
         pane.send_keys(init_snippet, enter=True, suppress_history=False, literal=True)
     except Exception:
         pass
-    # Brief settle so the next tx command doesn't race the setup.
+    # Brief settle so the next tx-pane command doesn't race the setup.
     time.sleep(0.25)
 
     # Where the post-setup tail starts — skip the noisy init output by default.
@@ -135,7 +135,7 @@ def cmd_new(name: str | None, cwd: str | None, shell: str | None) -> None:
         "shell": shell_bin,
         # Tracks whether the marker hook is believed to be installed. Flipped
         # to False whenever a run finalises with exit_code=None (a hook-missing
-        # event); a subsequent tx run / exec / sudo will auto-resend the hook
+        # event); a subsequent tx-pane run / exec / sudo will auto-resend the hook
         # before sending its wrap (controlled by [defaults] auto_reinstall_hook).
         "hook_ok": True,
     }
@@ -164,7 +164,7 @@ def _truncate(s: str, width: int) -> str:
     name="ls",
     short_help="List managed panes.",
     help=(
-        "List all panes managed by tx.\n\n"
+        "List all panes managed by tx-pane.\n\n"
         "--format table (default) is fixed-width and human-friendly.\n"
         "--format tsv emits one TAB-separated row per pane (no header).\n"
         "--format json emits a JSON array; ideal for orchestrators."
@@ -189,7 +189,7 @@ def cmd_ls(fmt: str) -> None:
             pass
         pane_ids = [k for k in offsets.keys() if not k.startswith("_")]
         if not pane_ids:
-            click.echo("[empty: no panes — create one with 'tx new']")
+            click.echo("[empty: no panes — create one with 'tx-pane new']")
             return
         server = get_server()
         rows = []
@@ -433,8 +433,8 @@ def cmd_info(pane: str) -> None:
     name="restart",
     short_help="Re-attach a fresh tmux pane to a dead pane id, preserving the log.",
     help=(
-        "When 'tx status <pane>' reports state=dead, this re-allocates a new tmux\n"
-        "pane under the same tx id, re-attaches pipe-pane to the existing log file\n"
+        "When 'tx-pane status <pane>' reports state=dead, this re-allocates a new tmux\n"
+        "pane under the same tx-pane id, re-attaches pipe-pane to the existing log file\n"
         "(append mode) so prior output is preserved, and re-installs the v2 marker\n"
         "hook. A divider line is appended to mark the seam."
     ),
@@ -471,7 +471,7 @@ def cmd_restart(pane: str) -> None:
         log_path.touch(exist_ok=True)
         try:
             with open(log_path, "ab") as f:
-                f.write(f"\n--- tx restart at {now_iso()} ---\n".encode("utf-8"))
+                f.write(f"\n--- tx-pane restart at {now_iso()} ---\n".encode("utf-8"))
         except OSError:
             pass
         # pipe-pane in append mode (we never truncate the existing log).

@@ -1,6 +1,6 @@
 """tx_core.commands.read — log-reading commands (tail / dump / wait / reset / log / log-path / grep / mark)
 
-Extracted verbatim from the monolithic `tx` script during the modular
+Extracted verbatim from the monolithic `tx-pane` script during the modular
 refactor. Each `@cli.command()` registers itself on the shared `cli`
 root group on import.
 """
@@ -142,7 +142,7 @@ def cmd_tail(
         state = dict(require_pane(offsets, pane))
     log_path = pane_log_path(pane)
     if not log_path.exists():
-        err(f"log file missing for pane '{pane}' — pane may have been created outside tx")
+        err(f"log file missing for pane '{pane}' — pane may have been created outside tx-pane")
 
     max_lines = max_lines if max_lines is not None else int(cfg["defaults"]["max_lines"])
     strip_blanks = bool(cfg["defaults"]["strip"]) and not no_strip
@@ -175,7 +175,7 @@ def cmd_tail(
         if file_size > start_offset:
             raw_text = _read_cleaned_text(log_path, start_offset, file_size, keep_ansi=keep_ansi_resolved)
             pending.extend(_render_read_text(
-                raw_text, cfg, state, pane, f"tx tail {pane}", strip_blanks,
+                raw_text, cfg, state, pane, f"tx-pane tail {pane}", strip_blanks,
                 raw_flag, terse_flag, token_budget_flag, no_strip_banners_flag,
                 no_collapse_repeats_flag, no_normalize_flag,
                 log_path=log_path, start_offset=start_offset, end_offset=file_size,
@@ -205,7 +205,7 @@ def cmd_tail(
         file_size = log_path.stat().st_size
         raw_text = _read_cleaned_text(log_path, start_offset, file_size, keep_ansi=keep_ansi_resolved)
         all_lines = _render_read_text(
-            raw_text, cfg, state, pane, f"tx tail {pane}", strip_blanks,
+            raw_text, cfg, state, pane, f"tx-pane tail {pane}", strip_blanks,
             raw_flag, terse_flag, token_budget_flag, no_strip_banners_flag,
             no_collapse_repeats_flag, no_normalize_flag,
             log_path=log_path, start_offset=start_offset, end_offset=file_size,
@@ -226,7 +226,7 @@ def cmd_tail(
             save_offsets(offsets)
         _emit(shown)
         if remainder:
-            click.echo(f"[truncated: {len(remainder)} lines remain — run: tx tail {pane} --continue]")
+            click.echo(f"[truncated: {len(remainder)} lines remain — run: tx-pane tail {pane} --continue]")
         return
 
     with offsets_lock():
@@ -234,7 +234,7 @@ def cmd_tail(
         state = dict(require_pane(offsets, pane))
         pending = list(state.get("pending_lines") or [])
     if do_continue and not pending:
-        err(f"no truncation in progress for pane '{pane}' — run 'tx tail {pane}' first")
+        err(f"no truncation in progress for pane '{pane}' — run 'tx-pane tail {pane}' first")
 
     if pending:
         if do_continue:
@@ -253,7 +253,7 @@ def cmd_tail(
                 save_offsets(offsets)
             _emit(chunk)
             if remainder:
-                click.echo(f"[truncated: {len(remainder)} lines remain — run: tx tail {pane} --continue]")
+                click.echo(f"[truncated: {len(remainder)} lines remain — run: tx-pane tail {pane} --continue]")
             else:
                 click.echo("[end of output]")
         else:
@@ -261,7 +261,7 @@ def cmd_tail(
             remainder = pending[max_lines:]
             _emit(chunk)
             if remainder:
-                click.echo(f"[truncated: {len(remainder)} lines remain — run: tx tail {pane} --continue]")
+                click.echo(f"[truncated: {len(remainder)} lines remain — run: tx-pane tail {pane} --continue]")
         return
 
     start_offset = int(state.get("tail_offset", 0))
@@ -269,7 +269,7 @@ def cmd_tail(
     file_size = log_path.stat().st_size
     raw_text = _read_cleaned_text(log_path, start_offset, file_size, keep_ansi=keep_ansi_resolved)
     all_lines = _render_read_text(
-        raw_text, cfg, state, pane, f"tx tail {pane}", strip_blanks,
+        raw_text, cfg, state, pane, f"tx-pane tail {pane}", strip_blanks,
         raw_flag, terse_flag, token_budget_flag, no_strip_banners_flag,
         no_collapse_repeats_flag, no_normalize_flag,
         log_path=log_path, start_offset=start_offset, end_offset=file_size,
@@ -291,7 +291,7 @@ def cmd_tail(
         save_offsets(offsets)
     _emit(shown)
     if remainder:
-        click.echo(f"[truncated: {len(remainder)} lines remain — run: tx tail {pane} --continue]")
+        click.echo(f"[truncated: {len(remainder)} lines remain — run: tx-pane tail {pane} --continue]")
 
 
 # ----- dump -----
@@ -304,7 +304,7 @@ def cmd_tail(
         "cleaned lines (ideal for 'show me what's on screen right now').\n"
         "--from <name> reads from a named bookmark.\n"
         "Does not affect tail_offset. --continue resumes a previously-truncated\n"
-        "dump via the per-pane dump_pending cache (independent of tx tail's pending)."
+        "dump via the per-pane dump_pending cache (independent of tx-pane tail's pending)."
     ),
 )
 @click.argument("pane")
@@ -340,7 +340,7 @@ def cmd_dump(
         state = require_pane(offsets, pane)
     log_path = pane_log_path(pane)
     if not log_path.exists():
-        err(f"log file missing for pane '{pane}' — pane may have been created outside tx")
+        err(f"log file missing for pane '{pane}' — pane may have been created outside tx-pane")
     max_lines = max_lines if max_lines is not None else int(cfg["defaults"]["max_lines"])
     strip_blanks = bool(cfg["defaults"]["strip"]) and not no_strip
     strip_ansi_flag = resolve_strip_ansi(cfg, keep_ansi)
@@ -366,7 +366,7 @@ def cmd_dump(
         pending = list(state.get("dump_pending_lines") or [])
     if do_continue:
         if not pending:
-            err(f"no dump truncation in progress for pane '{pane}' — run 'tx dump {pane}' first")
+            err(f"no dump truncation in progress for pane '{pane}' — run 'tx-pane dump {pane}' first")
         chunk = pending[:max_lines]
         remainder = pending[max_lines:]
         with offsets_lock():
@@ -383,7 +383,7 @@ def cmd_dump(
                 save_offsets(offsets)
         _emit(chunk)
         if remainder:
-            click.echo(f"[truncated: {len(remainder)} lines remain — run: tx dump {pane} --continue]")
+            click.echo(f"[truncated: {len(remainder)} lines remain — run: tx-pane dump {pane} --continue]")
         else:
             click.echo("[end of output]")
         return
@@ -394,7 +394,7 @@ def cmd_dump(
     raw_text = _read_cleaned_text(log_path, dump_start, file_size, keep_ansi=keep_ansi_resolved)
     raw_text = strip_run_markers(raw_text)
     all_lines = _render_read_text(
-        raw_text, cfg, state, pane, f"tx dump {pane}", strip_blanks,
+        raw_text, cfg, state, pane, f"tx-pane dump {pane}", strip_blanks,
         raw_flag, terse_flag, token_budget_flag, no_strip_banners_flag,
         no_collapse_repeats_flag, no_normalize_flag,
         log_path=log_path, start_offset=dump_start, end_offset=file_size,
@@ -432,7 +432,7 @@ def cmd_dump(
             offsets[pane] = state
             save_offsets(offsets)
         _emit(shown)
-        click.echo(f"[truncated: {len(remainder)} lines remain — run: tx dump {pane} --continue]")
+        click.echo(f"[truncated: {len(remainder)} lines remain — run: tx-pane dump {pane} --continue]")
     else:
         # Clear any stale dump pending.
         with offsets_lock():
@@ -481,7 +481,7 @@ def cmd_wait(
         start_offset = int(state.get("tail_offset", 0))
     log_path = pane_log_path(pane)
     if not log_path.exists():
-        err(f"log file missing for pane '{pane}' — pane may have been created outside tx")
+        err(f"log file missing for pane '{pane}' — pane may have been created outside tx-pane")
     try:
         regex = re.compile(pattern)
     except re.error as e:
@@ -526,7 +526,7 @@ def cmd_wait(
     if matched:
         raw_text = _read_cleaned_text(log_path, start_offset, start_offset + consumed)
         all_lines = _render_read_text(
-            raw_text, cfg, state, pane, f"tx wait {pane} {pattern}", strip_blanks,
+            raw_text, cfg, state, pane, f"tx-pane wait {pane} {pattern}", strip_blanks,
             raw_flag, terse_flag, token_budget_flag, no_strip_banners_flag,
             no_collapse_repeats_flag, no_normalize_flag,
             log_path=log_path, start_offset=start_offset, end_offset=start_offset + consumed,
@@ -549,12 +549,12 @@ def cmd_wait(
         if shown:
             click.echo("\n".join(shown), color=False)
         if remainder:
-            click.echo(f"[truncated: {len(remainder)} lines remain — run: tx tail {pane} --continue]")
+            click.echo(f"[truncated: {len(remainder)} lines remain — run: tx-pane tail {pane} --continue]")
     else:
         file_size = log_path.stat().st_size
         raw_text = _read_cleaned_text(log_path, start_offset, file_size)
         all_lines = _render_read_text(
-            raw_text, cfg, state, pane, f"tx wait {pane} {pattern}", strip_blanks,
+            raw_text, cfg, state, pane, f"tx-pane wait {pane} {pattern}", strip_blanks,
             raw_flag, terse_flag, token_budget_flag, no_strip_banners_flag,
             no_collapse_repeats_flag, no_normalize_flag,
             log_path=log_path, start_offset=start_offset, end_offset=file_size,
@@ -573,7 +573,7 @@ def cmd_wait(
     help=(
         "Reset tail offset to current end of log.\n\n"
         "--to <name> rewinds tail_offset to a saved bookmark instead, letting\n"
-        "subsequent 'tx tail' replay everything since the mark."
+        "subsequent 'tx-pane tail' replay everything since the mark."
     ),
 )
 @click.argument("pane")
@@ -605,8 +605,8 @@ def cmd_reset(pane: str, to_bookmark: str | None) -> None:
     name="log-path",
     short_help="Print the on-disk log path for a pane.",
     help=(
-        "Print the absolute path to ~/.tx/logs/<pane>.log.\n\n"
-        "The log is preserved across 'tx kill' so post-mortem inspection works."
+        "Print the absolute path to ~/.tx-pane/logs/<pane>.log.\n\n"
+        "The log is preserved across 'tx-pane kill' so post-mortem inspection works."
     ),
 )
 @click.argument("pane")
@@ -622,7 +622,7 @@ def cmd_log_path(pane: str) -> None:
     name="log",
     short_help="Read the on-disk log (independent of tail offset).",
     help=(
-        "Read ~/.tx/logs/<pane>.log directly. Does NOT advance tail_offset and\n"
+        "Read ~/.tx-pane/logs/<pane>.log directly. Does NOT advance tail_offset and\n"
         "is independent of the pending tail/dump caches.\n\n"
         "Slicing options:\n"
         "  --tail N       last N cleaned lines\n"
@@ -672,16 +672,16 @@ def cmd_log(
             require_pane(offsets, pane)
             record = find_run_record(offsets[pane], since_run)
         if record is None:
-            err(f"run '{since_run}' not found in pane '{pane}' — run 'tx runs {pane}'")
+            err(f"run '{since_run}' not found in pane '{pane}' — run 'tx-pane runs {pane}'")
         if record.get("end_offset") is None:
-            err(f"run '{since_run}' is still active — wait for completion or use 'tx tail'")
+            err(f"run '{since_run}' is still active — wait for completion or use 'tx-pane tail'")
         start_offset = int(record["end_offset"])
 
     file_size = log_path.stat().st_size
     raw_text = _read_cleaned_text(log_path, start_offset, file_size, keep_ansi=keep_ansi_resolved)
     raw_text = strip_run_markers(raw_text)
     all_lines = _render_read_text(
-        raw_text, cfg, None, pane, f"tx log {pane}", strip_blanks,
+        raw_text, cfg, None, pane, f"tx-pane log {pane}", strip_blanks,
         raw_flag, terse_flag, token_budget_flag, no_strip_banners_flag,
         no_collapse_repeats_flag, no_normalize_flag,
         log_path=log_path, start_offset=start_offset, end_offset=file_size,
@@ -709,7 +709,7 @@ def cmd_log(
     name="grep",
     short_help="Search the pane log with regex, with GNU-style -A/-B/-C context.",
     help=(
-        "Read ~/.tx/logs/<pane>.log, ANSI-strip, then emit cleaned lines that\n"
+        "Read ~/.tx-pane/logs/<pane>.log, ANSI-strip, then emit cleaned lines that\n"
         "match <regex>. Groups of matches are separated by '--' lines (GNU grep\n"
         "convention) when context lines are requested.\n\n"
         "Context flags:\n"
@@ -795,7 +795,7 @@ def cmd_grep(
         output.extend(all_lines[lo:hi + 1])
 
     compact_ctx = _read_compact_ctx(
-        cfg, None, pane, f"tx grep {pane} {pattern}", raw_flag, terse_flag,
+        cfg, None, pane, f"tx-pane grep {pane} {pattern}", raw_flag, terse_flag,
         token_budget_flag, no_strip_banners_flag, no_collapse_repeats_flag,
         no_normalize_flag, must_keep_re=[regex],
     )
@@ -819,8 +819,8 @@ def cmd_grep(
     short_help="Save a named byte-offset bookmark.",
     help=(
         "Save the current end-of-log byte offset under <name>.\n\n"
-        "Read from it later with 'tx tail --from <name>' / 'tx dump --from <name>',\n"
-        "or rewind tail to it with 'tx reset --to <name>'."
+        "Read from it later with 'tx-pane tail --from <name>' / 'tx-pane dump --from <name>',\n"
+        "or rewind tail to it with 'tx-pane reset --to <name>'."
     ),
 )
 @click.argument("pane")

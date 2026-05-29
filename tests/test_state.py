@@ -40,7 +40,7 @@ def test_load_config_creates_default(tx_module, tx_home, monkeypatch):
     patch_tx_paths(tx_module, tx_home, monkeypatch)
     cfg = tx_module.load_config()
     assert (tx_home / "config.toml").exists()
-    assert cfg["defaults"]["tmux_session"] == "tx"
+    assert cfg["defaults"]["tmux_session"] == "tx-pane"
     assert cfg["security"]["command_allowlist"] == "all"
     assert cfg["protocol"]["version"] == tx_module.PROTOCOL_VERSION
     assert cfg["compact"]["default_mode"] == "terse"
@@ -345,7 +345,7 @@ def test_pane_state_idle_when_nothing_special(tx_module, monkeypatch):
     assert info["waiting_pattern"] is None
 
 
-# ---------- pane_status (tx ls back-compat tuple) ----------
+# ---------- pane_status (tx-pane ls back-compat tuple) ----------
 
 def test_pane_status_dead(tx_module, monkeypatch):
     import tx_core.state as _tcs

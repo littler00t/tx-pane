@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-TX_SCRIPT = Path(__file__).resolve().parent.parent / "tx"
+TX_SCRIPT = Path(__file__).resolve().parent.parent / "tx-pane"
 
 
 def _run_tx(env: dict[str, str], *args: str, timeout: float = 30.0) -> subprocess.CompletedProcess:
@@ -28,7 +28,7 @@ def isolated_env(tmp_path: Path, monkeypatch):
     home = tmp_path / "tx_home"
     home.mkdir()
     env = os.environ.copy()
-    env["TX_HOME"] = str(home)
+    env["TX_PANE_HOME"] = str(home)
     return env, home
 
 
@@ -38,7 +38,7 @@ def test_help_root_exits_zero(isolated_env):
     assert res.returncode == 0
     assert "PANE LIFECYCLE" in res.stdout
     assert "READING OUTPUT" in res.stdout
-    assert "tx tail" in res.stdout
+    assert "tx-pane tail" in res.stdout
 
 
 def test_subcommand_help(isolated_env):
@@ -59,7 +59,7 @@ def test_config_creates_default(isolated_env):
     env, home = isolated_env
     res = _run_tx(env, "config")
     assert res.returncode == 0
-    assert 'tmux_session = "tx"' in res.stdout
+    assert 'tmux_session = "tx-pane"' in res.stdout
     assert "max_lines = 200" in res.stdout
     assert (home / "config.toml").exists()
 

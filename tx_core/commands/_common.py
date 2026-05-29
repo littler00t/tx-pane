@@ -4,7 +4,7 @@ The 34 `cmd_*` handlers each reference many helpers across tx_core.
 Rather than enumerate identical import blocks in five files, every
 command submodule does `from tx_core.commands._common import *`. The
 underscore-aliased `tx_compact` imports mirror the names used by the
-original monolithic `tx` script so we can move command bodies verbatim.
+original monolithic `tx-pane` script so we can move command bodies verbatim.
 """
 
 from __future__ import annotations
@@ -183,5 +183,5 @@ from tx_core.wait import (  # noqa: F401
 
 # Export every name (including underscore-prefixed ones) so command modules
 # can do `from tx_core.commands._common import *` and pick up the helpers
-# the monolithic `tx` script exposed at module level.
+# the monolithic `tx-pane` script exposed at module level.
 __all__ = [n for n in dir() if not n.startswith("__")]

@@ -1,9 +1,9 @@
 """Filesystem-backed config + offsets I/O, with the exclusive run-state lock.
 
 `load_config` / `load_offsets` / `save_offsets` are the only entry points
-to ~/.tx/config.toml and ~/.tx/offsets.json. The `_OffsetsLock` context
+to ~/.tx-pane/config.toml and ~/.tx-pane/offsets.json. The `_OffsetsLock` context
 manager (obtained via `offsets_lock()`) is the only sanctioned way to
-read-modify-write offsets across concurrent tx invocations.
+read-modify-write offsets across concurrent tx-pane invocations.
 
 Run-lifecycle bookkeeping (record_run_start / record_run_end / find_run_record)
 lives here too because it operates on the in-memory `state` dict that
@@ -170,7 +170,7 @@ def record_run_end(
     # exit_code None means the marker wasn't observed but the prompt returned
     # (prompt-pattern fallback). That's the canonical signal that the marker
     # hook isn't wired into the current foreground shell — flag the pane so
-    # the next tx run can auto-reinstall.
+    # the next tx-pane run can auto-reinstall.
     if exit_code is None:
         state["hook_ok"] = False
     else:

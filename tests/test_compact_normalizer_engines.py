@@ -161,7 +161,7 @@ class TestTomlPipeline:
         # Conjunctions block.
         ("df -h && du -sh", True),
         ("apt update; apt list", True),
-        # Stdout redirect to file blocks (output goes to disk, not tx).
+        # Stdout redirect to file blocks (output goes to disk, not tx-pane).
         ("ls > out.txt", True),
         # Input redirect blocks.
         ("cat < input.txt", True),

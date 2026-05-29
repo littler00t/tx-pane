@@ -1,11 +1,11 @@
-# tx — agent playbook
+# tx-pane — agent playbook
 
-This document is **for LLM agents driving `tx`**. It is decision
+This document is **for LLM agents driving `tx-pane`**. It is decision
 guidance, not a feature reference. When the top-level decision table in
 `CLAUDE.md` doesn't tell you what to do, this is the next doc to pull.
 
 It is organized as **questions you'll actually ask yourself** at the
-moment you're about to call `tx`.
+moment you're about to call `tx-pane`.
 
 Cross-references:
 - Flag/option reference: [`tx-doc-reference.md`](tx-doc-reference.md)
@@ -16,7 +16,7 @@ Cross-references:
 
 ## Pre-flight: do I even need a pane?
 
-You don't need `tx` for every command. Defer to your task tool's plain
+You don't need `tx-pane` for every command. Defer to your task tool's plain
 shell when:
 
 - Result fits in one line and you don't need the exit code (`hostname`).
@@ -24,7 +24,7 @@ shell when:
   shell state again.
 - You need <50ms latency per call in a tight loop.
 
-You do need `tx` (i.e. `tx new` + `tx run`) when **any** of:
+You do need `tx-pane` (i.e. `tx-pane new` + `tx-pane run`) when **any** of:
 
 - The command might run for more than a couple of seconds.
 - You need a real exit code, not an output-shaped guess.
@@ -44,41 +44,41 @@ common waste pattern.
 
 | Situation | Use | Why |
 |---|---|---|
-| You want output back inline, and you'll wait | `tx run` | The default. Bounded by `--timeout`. |
-| You want output back inline, but might bail early | `tx run --wait-for <re>` / `--fail-for <re>` | Returns as soon as pattern hits. Exits 0 on `--wait-for`, 1 on `--fail-for`. |
-| The command runs essentially forever (server, log follow) | `tx exec` then later `tx tail` or `tx wait` | `exec` returns a run-id immediately. |
-| You want N seconds of a `tail -f`-style stream | `tx stream <cmd> --duration 10s` | Auto-`C-c`s at the bound. |
-| You want output but plan to do other work first | `tx exec` + `tx wait-run` later | Lets you parallelize. |
-| You don't want output, only an exit code | `tx run --json … | jq -r .exit` | Skip parsing stdout. |
+| You want output back inline, and you'll wait | `tx-pane run` | The default. Bounded by `--timeout`. |
+| You want output back inline, but might bail early | `tx-pane run --wait-for <re>` / `--fail-for <re>` | Returns as soon as pattern hits. Exits 0 on `--wait-for`, 1 on `--fail-for`. |
+| The command runs essentially forever (server, log follow) | `tx-pane exec` then later `tx-pane tail` or `tx-pane wait` | `exec` returns a run-id immediately. |
+| You want N seconds of a `tail -f`-style stream | `tx-pane stream <cmd> --duration 10s` | Auto-`C-c`s at the bound. |
+| You want output but plan to do other work first | `tx-pane exec` + `tx-pane wait-run` later | Lets you parallelize. |
+| You don't want output, only an exit code | `tx-pane run --json … | jq -r .exit` | Skip parsing stdout. |
 
-**Common mistake:** using `tx run` on `tail -f` or `npm run dev`. The
+**Common mistake:** using `tx-pane run` on `tail -f` or `npm run dev`. The
 command will not return; you'll hit `--timeout` and not know whether
-the server actually started. Use `tx exec` + `tx wait` for "start a
+the server actually started. Use `tx-pane exec` + `tx-pane wait` for "start a
 server and wait until it's listening":
 
 ```
-tx exec  "$pane" "npm run dev"
-tx wait  "$pane" "listening on" --timeout 30
+tx-pane exec  "$pane" "npm run dev"
+tx-pane wait  "$pane" "listening on" --timeout 30
 ```
 
 ---
 
 ## Resolving "pane busy"
 
-If `tx run` or `tx exec` errors with state `running` / `tui` /
+If `tx-pane run` or `tx-pane exec` errors with state `running` / `tui` /
 `waiting-input`, you must pick a resolution. There is no `--force`.
 
 Decision tree:
 
 ```
 Do I need the current command's output first?
-├─ Yes → wait for it: tx wait-run <pane> <prior-run-id>
+├─ Yes → wait for it: tx-pane wait-run <pane> <prior-run-id>
 │        then retry the new command.
 └─ No → does the new command depend on the current one finishing?
-        ├─ Yes (e.g. "run after build done") → tx run --queue
-        ├─ No, and the current command is unwanted → tx run --kill-and-run
-        └─ No, current command is *prompting for input* → tx run --stdin
-                                                  (or tx send / tx key)
+        ├─ Yes (e.g. "run after build done") → tx-pane run --queue
+        ├─ No, and the current command is unwanted → tx-pane run --kill-and-run
+        └─ No, current command is *prompting for input* → tx-pane run --stdin
+                                                  (or tx-pane send / tx-pane key)
 ```
 
 `--queue` blocks up to `--max-wait` (default 600s). If you don't want
@@ -91,13 +91,13 @@ command. The killed run's exit code is preserved (usually 130).
 `--stdin` is for when the pane is at a "Y/n" or password prompt
 (state=`waiting-input`). It sends your text + Enter without checking
 busy. **Do not** use `--stdin` to ship sensitive bytes — use
-`tx send-secret`.
+`tx-pane send-secret`.
 
 ---
 
 ## Exit codes: trust, but verify
 
-The contract: every `tx run` whose pane has a working marker hook
+The contract: every `tx-pane run` whose pane has a working marker hook
 emits `[exit:N]` at the end. With `--json`, it's the `exit` field.
 
 **The marker can be missing.** Symptoms:
@@ -109,13 +109,13 @@ emits `[exit:N]` at the end. With `--json`, it's the `exit` field.
 Causes (in order of likelihood):
 
 1. You're in a nested shell (you ran `ssh`, `sudo -i`, `docker exec`).
-   Run `tx hook-install <pane>` once. Subsequent runs will mark correctly.
+   Run `tx-pane hook-install <pane>` once. Subsequent runs will mark correctly.
 2. The user manually unset `PROMPT_COMMAND` / overrode `precmd`. Run
-   `tx hook-install <pane>` to reinstall.
-3. Pane crashed / shell exited. `tx status <pane>` will say `dead`.
-   Run `tx restart <pane>`.
+   `tx-pane hook-install <pane>` to reinstall.
+3. Pane crashed / shell exited. `tx-pane status <pane>` will say `dead`.
+   Run `tx-pane restart <pane>`.
 4. The command itself replaced the shell (`exec bash`, `exec python`).
-   Reinstall the hook in the new shell with `tx hook-install`.
+   Reinstall the hook in the new shell with `tx-pane hook-install`.
 
 **Backgrounded commands (`cmd &`).** The hook fires when the shell
 returns to the prompt, which is immediately — exit code 0. The
@@ -123,12 +123,12 @@ backgrounded process may still be running, may crash later, may
 succeed. *The exit code you got is the exit code of the
 shell-builtin-that-backgrounded-the-job, not the job itself.* For
 "start a server and wait until ready" patterns, **don't** background
-with `&`; use `tx exec`. For "kick off and check later", `tx exec`
-gives you a real run-id you can later poll with `tx wait-run`.
+with `&`; use `tx-pane exec`. For "kick off and check later", `tx-pane exec`
+gives you a real run-id you can later poll with `tx-pane wait-run`.
 
-**`tx run` itself exits 0** even when the wrapped command exited
+**`tx-pane run` itself exits 0** even when the wrapped command exited
 non-zero. Read `[exit:N]` from the body or `.exit` from `--json`.
-This is intentional: `tx run`'s own success means "I delivered the
+This is intentional: `tx-pane run`'s own success means "I delivered the
 command and observed it complete", which is independent of the
 command's success.
 
@@ -138,15 +138,15 @@ command's success.
 
 | Goal | Command | Notes |
 |---|---|---|
-| New bytes since last read; I'll read repeatedly | `tx tail <pane>` | Advances `tail_offset`. The most common reader. |
-| Look at the last N lines, don't change my read position | `tx dump <pane> --tail N` | Idempotent. Use for "where am I" checks. |
-| Look at the first N lines (head) | `tx dump <pane> --head N` | Also idempotent. |
-| Drain all unread bytes one-shot | `tx tail <pane> --all` | Use before pane handoff. |
-| Pick out errors only | `tx grep <pane> '(?i)error\|fail' -C 2` | Context lines around matches. |
-| Output of one specific run | `tx output <pane> <run-id>` | Bounded to that run's span. |
-| Output of the previous run | `tx output <pane> --last` | |
-| Output of everything since a known run | `tx output <pane> --since-run r-XXX` | |
-| Recover content L4 elided | `tx output <pane> --handle h-XXX --range/--grep/--full` | See compaction doc. |
+| New bytes since last read; I'll read repeatedly | `tx-pane tail <pane>` | Advances `tail_offset`. The most common reader. |
+| Look at the last N lines, don't change my read position | `tx-pane dump <pane> --tail N` | Idempotent. Use for "where am I" checks. |
+| Look at the first N lines (head) | `tx-pane dump <pane> --head N` | Also idempotent. |
+| Drain all unread bytes one-shot | `tx-pane tail <pane> --all` | Use before pane handoff. |
+| Pick out errors only | `tx-pane grep <pane> '(?i)error\|fail' -C 2` | Context lines around matches. |
+| Output of one specific run | `tx-pane output <pane> <run-id>` | Bounded to that run's span. |
+| Output of the previous run | `tx-pane output <pane> --last` | |
+| Output of everything since a known run | `tx-pane output <pane> --since-run r-XXX` | |
+| Recover content L4 elided | `tx-pane output <pane> --handle h-XXX --range/--grep/--full` | See compaction doc. |
 
 `tail` and `dump` differ in **whether they advance the read pointer**.
 This matters when you have an exec'd long-running command and you're
@@ -157,13 +157,13 @@ the same window twice (e.g. "what's on screen right now"), use `dump`.
 
 ## Compaction: when to override the default
 
-`tx` defaults to compaction-on. **Trust it on the first call.** Then:
+`tx-pane` defaults to compaction-on. **Trust it on the first call.** Then:
 
 1. If you see an `h-XXXX` handle and you need the elided content, use
-   `tx output --handle h-XXX --grep PAT` *first*. It's faster and
+   `tx-pane output --handle h-XXX --grep PAT` *first*. It's faster and
    cheaper than re-running.
 2. If you suspect the *per-tool* normalizer dropped a column you need
-   (rare — check the `[tx:compact ...]` footer for the `layers=` list
+   (rare — check the `[tx-pane:compact ...]` footer for the `layers=` list
    to see which fired), re-run that **single** command with
    `--no-normalize`.
 3. If the output is genuinely an opaque blob (binary, custom format,
@@ -185,7 +185,7 @@ verbose tools.
 **When to read the footer carefully:**
 
 ```
-[tx:compact tier=passthrough layers=L1 in=8420B out=8401B saved=0%]
+[tx-pane:compact tier=passthrough layers=L1 in=8420B out=8401B saved=0%]
 ```
 
 A `tier=passthrough` or `tier=degraded` footer means the normalizer
@@ -193,7 +193,7 @@ declined to make a happy-path summary — usually because the tool
 returned an error or unexpected output shape. **Treat passthrough
 output as raw**: the compaction layers ran but didn't find a known
 shape; the bytes are essentially what the tool produced. Read them
-carefully rather than assuming "tx compacted this, so it's small for a
+carefully rather than assuming "tx-pane compacted this, so it's small for a
 reason".
 
 ---
@@ -204,13 +204,13 @@ reason".
 
 | Pattern | Command |
 |---|---|
-| "I want N seconds of this then stop" | `tx stream <pane> "<cmd> -f" --duration 10s` |
-| "I want until I see X" | `tx stream <pane> "<cmd> -f" --until "X"` |
-| "I want it running while I do other things" | `tx exec <pane> "<cmd> -f"` |
-| "I started it with exec and want to check on it" | `tx tail <pane>` (advances offset) |
-| "I want to stop the streaming run" | `tx kill-run <pane> <run-id>` |
+| "I want N seconds of this then stop" | `tx-pane stream <pane> "<cmd> -f" --duration 10s` |
+| "I want until I see X" | `tx-pane stream <pane> "<cmd> -f" --until "X"` |
+| "I want it running while I do other things" | `tx-pane exec <pane> "<cmd> -f"` |
+| "I started it with exec and want to check on it" | `tx-pane tail <pane>` (advances offset) |
+| "I want to stop the streaming run" | `tx-pane kill-run <pane> <run-id>` |
 
-`tx stream` always returns. `tx exec` of a non-terminating command
+`tx-pane stream` always returns. `tx-pane exec` of a non-terminating command
 returns a run-id and runs until you kill it; the pane state stays
 `running` indefinitely.
 
@@ -222,12 +222,12 @@ Three options, by sensitivity:
 
 | Sensitivity | Tool | Where bytes land |
 |---|---|---|
-| Public input | `tx run` / `tx send` | argv (visible to `ps`), stdin, log |
-| Should not be in `ps` | `tx send` reads no argv beyond `<text>` | argv, stdin, log |
-| Must never hit disk | `tx send-secret` (stdin only, `--enter` to add newline) | stdin only; log gets `[redacted: send-secret N bytes]` placeholder |
+| Public input | `tx-pane run` / `tx-pane send` | argv (visible to `ps`), stdin, log |
+| Should not be in `ps` | `tx-pane send` reads no argv beyond `<text>` | argv, stdin, log |
+| Must never hit disk | `tx-pane send-secret` (stdin only, `--enter` to add newline) | stdin only; log gets `[redacted: send-secret N bytes]` placeholder |
 | Must redact in stdout | configure `redact_patterns` in `[security]` | agent-facing output rewritten; on-disk log keeps bytes |
 
-For passwords, `tx send-secret` is the only correct answer. For
+For passwords, `tx-pane send-secret` is the only correct answer. For
 output redaction (an API response containing a token you don't want
 in your context window), set `redact_patterns` per-pane.
 
@@ -235,26 +235,26 @@ in your context window), set `redact_patterns` per-pane.
 
 ## When the pane is "stuck"
 
-Symptoms: `tx run` times out, `tx status` says `running` for an
+Symptoms: `tx-pane run` times out, `tx-pane status` says `running` for an
 expected-short command, you got no output.
 
 Triage order:
 
-1. `tx info <pane>` — multi-line state, recent runs, hook status.
-2. `tx dump <pane> --tail 80` — what's actually on the screen?
-3. `tx grep <pane> '(?i)error|exception|panic' -C 3 --max 50` — is
+1. `tx-pane info <pane>` — multi-line state, recent runs, hook status.
+2. `tx-pane dump <pane> --tail 80` — what's actually on the screen?
+3. `tx-pane grep <pane> '(?i)error|exception|panic' -C 3 --max 50` — is
    there a visible error?
-4. `tx runs <pane> --limit 5` — what does run history say?
+4. `tx-pane runs <pane> --limit 5` — what does run history say?
 
 Then decide:
 
-- **TUI app** (`vim`, `htop`, `less`): `tx key <pane> q` or `C-c`,
-  then `tx run --kill-and-run` to free the pane.
+- **TUI app** (`vim`, `htop`, `less`): `tx-pane key <pane> q` or `C-c`,
+  then `tx-pane run --kill-and-run` to free the pane.
 - **Real hang** (no output for the timeout window, no obvious TUI):
-  `tx kill-run <pane> <run-id>`.
-- **Waiting for input** (`tx status` says `waiting-input`):
-  `tx run --stdin <pane> "<answer>"`.
-- **Dead pane** (`tx status` says `dead`): `tx restart <pane>`.
+  `tx-pane kill-run <pane> <run-id>`.
+- **Waiting for input** (`tx-pane status` says `waiting-input`):
+  `tx-pane run --stdin <pane> "<answer>"`.
+- **Dead pane** (`tx-pane status` says `dead`): `tx-pane restart <pane>`.
 
 Never `tmux kill-session`. That kills *every* pane the user is using;
 you've thrown away their context.
@@ -268,24 +268,24 @@ leaks (cwd, env, activated virtualenvs, exported credentials).
 Prefer:
 
 ```
-pane=$(tx new build --cwd ./service)
-tx run "$pane" "python -m venv .venv && . .venv/bin/activate"
-tx run "$pane" "pip install -r requirements.txt"
-tx run "$pane" "pytest -x"
-tx run --json "$pane" "docker build -t service:dev ."
+pane=$(tx-pane new build --cwd ./service)
+tx-pane run "$pane" "python -m venv .venv && . .venv/bin/activate"
+tx-pane run "$pane" "pip install -r requirements.txt"
+tx-pane run "$pane" "pytest -x"
+tx-pane run --json "$pane" "docker build -t service:dev ."
 ```
 
 vs the wrong way:
 
 ```
-tx run "$(tx new)" "python -m venv .venv && . .venv/bin/activate"   # venv lost
-tx run "$(tx new)" "pip install ..."                                # no venv
-tx run "$(tx new)" "pytest"                                         # broken
+tx-pane run "$(tx-pane new)" "python -m venv .venv && . .venv/bin/activate"   # venv lost
+tx-pane run "$(tx-pane new)" "pip install ..."                                # no venv
+tx-pane run "$(tx-pane new)" "pytest"                                         # broken
 ```
 
 The pane-id naming convention is `<role>-<purpose>` (e.g.
 `build-service`, `db-primary`, `web-staging`). Stable names make
-`tx ls` and the audit log readable.
+`tx-pane ls` and the audit log readable.
 
 ---
 
@@ -294,27 +294,27 @@ The pane-id naming convention is `<role>-<purpose>` (e.g.
 After any session you can reconstruct exactly what happened:
 
 ```
-~/.tx/logs/<pane>.log         # raw stream, markers visible
-~/.tx/offsets.json            # per-pane run history, bookmarks, handles
-~/.tx/compact.jsonl           # what compaction did (cmd_head only)
+~/.tx-pane/logs/<pane>.log         # raw stream, markers visible
+~/.tx-pane/offsets.json            # per-pane run history, bookmarks, handles
+~/.tx-pane/compact.jsonl           # what compaction did (cmd_head only)
 ```
 
 For an after-the-fact "what did the agent run on pane X":
 
 ```
-tx runs <pane> --limit 100 --json | jq -c '.[] | {run_id,cmd,exit,duration_ms}'
+tx-pane runs <pane> --limit 100 --json | jq -c '.[] | {run_id,cmd,exit,duration_ms}'
 ```
 
 For "what did the agent see (after compaction) for run r-XYZ":
 
 ```
-tx output <pane> r-XYZ
+tx-pane output <pane> r-XYZ
 ```
 
 For "what the *pane* actually emitted, byte-for-byte":
 
 ```
-tx output <pane> r-XYZ --full
+tx-pane output <pane> r-XYZ --full
 ```
 
 The `--full` view is the auditable ground truth. Use it for incidents
@@ -329,26 +329,26 @@ and disputes; otherwise the compacted form is what the agent acted on.
 ```
 hosts="web-01 web-02 web-03"
 for h in $hosts; do
-  p=$(tx new "$h")
-  tx run "$p" "ssh deploy@$h" --wait-for '\$ '
-  tx hook-install "$p"
+  p=$(tx-pane new "$h")
+  tx-pane run "$p" "ssh deploy@$h" --wait-for '\$ '
+  tx-pane hook-install "$p"
 done
 for h in $hosts; do
-  res=$(tx run --terse --json "$h" "systemctl is-active nginx")
+  res=$(tx-pane run --terse --json "$h" "systemctl is-active nginx")
   echo "$h: $(echo "$res" | jq -r .stdout)"
 done
 ```
 
 Why this works: one pane per host, each pane stays connected over the
-loop, exit codes are real (via `tx hook-install` after ssh).
+loop, exit codes are real (via `tx-pane hook-install` after ssh).
 
 ### B. "Capture the boot of a containerized service, then run smoke tests"
 
 ```
-p=$(tx new svc --cwd ./service)
-tx exec "$p" "docker compose up"
-tx wait "$p" "Started SvcApplication" --timeout 60
-tx run "$p" --queue "docker compose exec svc curl -fsS localhost:8080/health"
+p=$(tx-pane new svc --cwd ./service)
+tx-pane exec "$p" "docker compose up"
+tx-pane wait "$p" "Started SvcApplication" --timeout 60
+tx-pane run "$p" --queue "docker compose exec svc curl -fsS localhost:8080/health"
 ```
 
 Why: `exec` for the long-running `up`; `wait` for the readiness line;
@@ -358,11 +358,11 @@ wait because `up` is foreground; in `-d` mode this would matter).
 ### C. "Triage a journal explosion without dumping 80KB into context"
 
 ```
-p=$(tx new triage)
-tx run --terse "$p" "systemctl status app"   # 1-line if healthy, full block if failed
-tx run --token-budget 6000 "$p" "journalctl -u app -n 5000"   # head+tail+handle
+p=$(tx-pane new triage)
+tx-pane run --terse "$p" "systemctl status app"   # 1-line if healthy, full block if failed
+tx-pane run --token-budget 6000 "$p" "journalctl -u app -n 5000"   # head+tail+handle
 # If the elided middle is interesting:
-tx output "$p" --handle h-XXXX --grep "Connection refused" --grep-context 5
+tx-pane output "$p" --handle h-XXXX --grep "Connection refused" --grep-context 5
 ```
 
 Why: `--terse` collapses healthy `systemctl status`; budget-bounded
@@ -374,17 +374,17 @@ without re-running.
 ```
 # After resuming the conversation:
 p=existing-pane-name        # the agent recorded this earlier
-tx info "$p"                # is the pane alive? what state?
-tx runs "$p" --limit 10     # what ran, how did it end
-tx output "$p" --last       # what was the last command's output
+tx-pane info "$p"                # is the pane alive? what state?
+tx-pane runs "$p" --limit 10     # what ran, how did it end
+tx-pane output "$p" --last       # what was the last command's output
 # If pane is still running the deploy:
-tx tail "$p"                # any new output since the crash
+tx-pane tail "$p"                # any new output since the crash
 # If pane went dead while we were gone:
-tx restart "$p"             # revive it, log preserved
+tx-pane restart "$p"             # revive it, log preserved
 ```
 
 This is the recovery story for an agent crash mid-session: the pane
-outlives the agent process; `tx info` / `tx runs` reconstructs state.
+outlives the agent process; `tx-pane info` / `tx-pane runs` reconstructs state.
 
 ---
 
@@ -394,14 +394,14 @@ outlives the agent process; `tx info` / `tx runs` reconstructs state.
    per coherent purpose.
 2. **Defaulting to `--raw`.** Costs tokens. The handle protocol makes
    elision reversible.
-3. **`tx run` on `tail -f`.** Will time out. Use `tx stream` or
-   `tx exec`.
+3. **`tx-pane run` on `tail -f`.** Will time out. Use `tx-pane stream` or
+   `tx-pane exec`.
 4. **Backgrounding with `cmd &` to get parallelism.** The marker
    reports exit 0 for the *background-the-job* operation, not the job.
-   Use `tx exec` for real parallelism.
-5. **Sending passwords via `tx send` or `tx run`.** They land in argv
-   and the on-disk log. Use `tx send-secret`.
-6. **Killing the tmux session directly.** Always go through `tx kill`
+   Use `tx-pane exec` for real parallelism.
+5. **Sending passwords via `tx-pane send` or `tx-pane run`.** They land in argv
+   and the on-disk log. Use `tx-pane send-secret`.
+6. **Killing the tmux session directly.** Always go through `tx-pane kill`
    (one pane) or just leave panes alone — they're cheap.
 7. **Ignoring `tier=passthrough` footers.** That's the "I didn't
    understand this output" signal. The bytes are roughly raw; treat
@@ -410,7 +410,7 @@ outlives the agent process; `tx info` / `tx runs` reconstructs state.
    transport boundary *without* a recovery handle. Prefer
    `--token-budget` (L4 truncation with handle) over `--max`
    (post-compaction line cap).
-9. **Forgetting `tx hook-install` after `ssh`/`sudo -i`/`docker exec`.**
+9. **Forgetting `tx-pane hook-install` after `ssh`/`sudo -i`/`docker exec`.**
    Symptom: `[exit:?]`. The fix is one command and the nested shell
    keeps working until you exit it.
 
@@ -421,7 +421,7 @@ outlives the agent process; `tx info` / `tx runs` reconstructs state.
 | Problem | Flag |
 |---|---|
 | Output is too big | `--token-budget N` (default 4000) |
-| Output mentions a column the normalizer hid | `tx output --handle h-X --range a-b` |
+| Output mentions a column the normalizer hid | `tx-pane output --handle h-X --range a-b` |
 | Need bytes verbatim | `--raw` on that one call |
 | Need ANSI colors (rare; for replay) | `--keep-ansi` |
 | Command pattern matches `confirm_patterns` and there's no TTY | `--yes` |
@@ -431,4 +431,4 @@ outlives the agent process; `tx info` / `tx runs` reconstructs state.
 | Want to fail fast on a known-bad pattern | `--fail-for '<regex>'` |
 | Want to return as soon as something happens | `--wait-for '<regex>'` |
 | Want structured output for downstream parsing | `--json` |
-| Want to bound a streaming log read | `tx stream --duration 5s` or `--lines 200` or `--until <re>` |
+| Want to bound a streaming log read | `tx-pane stream --duration 5s` or `--lines 200` or `--until <re>` |

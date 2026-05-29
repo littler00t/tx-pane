@@ -1,4 +1,4 @@
-"""Integration tests for tx exec / wait-run / output / runs / kill-run / status."""
+"""Integration tests for tx-pane exec / wait-run / output / runs / kill-run / status."""
 
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ def test_wait_run_returns_cached_when_already_done(tx_runner):
     pane = _pane(tx_runner)
     res = tx_runner("run", pane, "echo first", timeout=15)
     assert res.returncode == 0
-    # Pull the run id from `tx runs`.
+    # Pull the run id from `tx-pane runs`.
     res2 = tx_runner("runs", pane)
     assert res2.returncode == 0
     run_id = [

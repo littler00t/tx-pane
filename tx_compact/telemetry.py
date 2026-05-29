@@ -5,14 +5,14 @@ prioritisation: when we choose the first 10 of 17 §5.3 normalizers to
 ship in P4, P2's telemetry tells us which `cmd_head` values an agent
 actually runs against the panes.
 
-File: ``$TX_HOME/compact.jsonl`` (default ``~/.tx/compact.jsonl``).
+File: ``$TX_PANE_HOME/compact.jsonl`` (default ``~/.tx-pane/compact.jsonl``).
 Rolling cap controlled by ``[compact.telemetry] max_size_mb`` (default
 10 MB). When the file exceeds the cap on a write, it's rotated to
 ``compact.jsonl.1`` (single backup, simpler than logs/ rotation).
 
 **Privacy:** only ``shlex.split(cmd)[0]`` is recorded as ``cmd_head``.
 Full command lines, arguments, paths, secrets are not. No network
-upload, ever. `tx compact-stats --forget` wipes both the live file and
+upload, ever. `tx-pane compact-stats --forget` wipes both the live file and
 the rotated backup.
 
 Record schema (one JSON object per line):
@@ -44,7 +44,7 @@ from .tier import Tier
 
 
 def _tx_home() -> Path:
-    return Path(os.environ.get("TX_HOME") or str(Path.home() / ".tx"))
+    return Path(os.environ.get("TX_PANE_HOME") or str(Path.home() / ".tx-pane"))
 
 
 def telemetry_path() -> Path:
@@ -98,7 +98,7 @@ def record(
     """
     if not enabled:
         return
-    if os.environ.get("TX_NO_TELEMETRY") == "1":
+    if os.environ.get("TX_PANE_NO_TELEMETRY") == "1":
         return
 
     try:

@@ -1,4 +1,4 @@
-"""End-to-end tests that exercise tx against a real tmux server."""
+"""End-to-end tests that exercise tx-pane against a real tmux server."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import pytest
 
 
 def _pane_id_from(result: subprocess.CompletedProcess) -> str:
-    """Extract the pane id from a `tx new` invocation."""
+    """Extract the pane id from a `tx-pane new` invocation."""
     assert result.returncode == 0, result.stderr or result.stdout
     return result.stdout.strip().splitlines()[-1].strip()
 
@@ -180,7 +180,7 @@ def _force_pane_dead(offsets_path: Path, pane: str) -> None:
 
 
 def test_restart_revives_dead_pane(tx_runner, tx_home):
-    """`tx restart` on a dead pane allocates a fresh tmux pane and writes a
+    """`tx-pane restart` on a dead pane allocates a fresh tmux pane and writes a
     divider into the existing log so prior output is preserved."""
     pane = _pane_id_from(tx_runner("new"))
     log_path = tx_home / "logs" / f"{pane}.log"
@@ -204,7 +204,7 @@ def test_restart_revives_dead_pane(tx_runner, tx_home):
 
     # Confirm the divider line is in the log somewhere.
     body = log_path.read_text(errors="replace")
-    assert "--- tx restart at " in body
+    assert "--- tx-pane restart at " in body
     assert "pre-restart sentinel" in body
 
 

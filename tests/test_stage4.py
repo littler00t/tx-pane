@@ -1,12 +1,12 @@
-"""Tests for Stage 4 (tx v1.0.0).
+"""Tests for Stage 4 (tx-pane v1.0.0).
 
 Covers:
-- Group A: `tx write` end-to-end (atomic deploy with hash verify), --diff,
+- Group A: `tx-pane write` end-to-end (atomic deploy with hash verify), --diff,
   --overwrite gating, --mode, sudo refusal preflight.
-- Group B: log rotation helpers, rotate-on-tx-new, age sweep, `tx maintain`.
+- Group B: log rotation helpers, rotate-on-tx-new, age sweep, `tx-pane maintain`.
 - Group C: hook-overwrite detection (hook_ok flag, auto-reinstall path).
 - Group F: fish shell init setup snippet selection.
-- Group G: `tx maintain` and lazy sweep timestamp.
+- Group G: `tx-pane maintain` and lazy sweep timestamp.
 - Group E (regression): old extract_exit_code symbols are gone; v2 protocol
   still active.
 """
@@ -194,7 +194,7 @@ def test_default_config_has_auto_reinstall_hook(tx_module):
     assert cfg["defaults"]["auto_reinstall_hook"] is True
 
 
-# ============== Group A: tx write (integration with real tmux) ==============
+# ============== Group A: tx-pane write (integration with real tmux) ==============
 
 def _pane(tx_runner, *args: str) -> str:
     res = tx_runner("new", *args)
@@ -205,7 +205,7 @@ def _pane(tx_runner, *args: str) -> str:
 def test_write_deploys_file_with_hash_verify(tx_runner, tmp_path: Path):
     pane = _pane(tx_runner)
     src = tmp_path / "src-config.txt"
-    payload = b"hello tx write\nline2\n"
+    payload = b"hello tx-pane write\nline2\n"
     src.write_bytes(payload)
     target = tmp_path / "deployed-config.txt"
 
@@ -341,7 +341,7 @@ def test_write_reload_cmd_runs_after_move(tx_runner, tmp_path: Path):
     assert flag.exists()
 
 
-# ============== Group B integration: rotation on tx new ==============
+# ============== Group B integration: rotation on tx-pane new ==============
 
 def test_rotate_on_tx_new_preserves_prior_log(tx_runner, tx_home: Path):
     """Create a pane, write large bytes to its log file, kill, re-create with
@@ -352,7 +352,7 @@ def test_rotate_on_tx_new_preserves_prior_log(tx_runner, tx_home: Path):
     # Drive the pane long enough to ensure the log has at least some content
     tx_runner("run", pane, "echo first-run-content", timeout=15)
     tx_runner("kill", pane, "--signal", "kill")
-    # Bloat the log on disk so the next tx new will see it >= threshold.
+    # Bloat the log on disk so the next tx-pane new will see it >= threshold.
     with open(log_path, "ab") as f:
         f.write(b"x" * (2 * 1024 * 1024))
 
@@ -361,7 +361,7 @@ def test_rotate_on_tx_new_preserves_prior_log(tx_runner, tx_home: Path):
     with open(cfg, "a") as f:
         f.write("\n[logs]\nmax_size_mb = 1\nmax_keep = 5\nmax_age_days = 30\n")
 
-    # offsets.json still has the entry — `tx new <same-name>` errors. So drop it.
+    # offsets.json still has the entry — `tx-pane new <same-name>` errors. So drop it.
     offsets = tx_home / "offsets.json"
     if offsets.exists():
         data = json.loads(offsets.read_text())
@@ -378,7 +378,7 @@ def test_rotate_on_tx_new_preserves_prior_log(tx_runner, tx_home: Path):
     assert log_path.exists()
 
 
-# ============== Group G: tx maintain ==============
+# ============== Group G: tx-pane maintain ==============
 
 def test_maintain_force_rotates_every_pane(tx_runner, tx_home: Path):
     p1 = _pane(tx_runner, "m1")
@@ -430,7 +430,7 @@ def test_maintain_sweeps_aged_logs(tx_runner, tx_home: Path):
 def test_help_mentions_tx_write_and_maintain(tx_runner):
     res = tx_runner("--help")
     assert res.returncode == 0
-    # `tx --help` is the custom HELP_TEXT; we updated it to mention these.
+    # `tx-pane --help` is the custom HELP_TEXT; we updated it to mention these.
     # Best-effort check: at minimum the click-level help works.
     res2 = tx_runner("write", "--help")
     assert res2.returncode == 0

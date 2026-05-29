@@ -1,5 +1,5 @@
 {
-  "name": "tx",
+  "name": "tx-pane",
   "build": {
     "dockerfile": "Dockerfile",
     "context": ".."
@@ -14,7 +14,7 @@
     }
   },
   // host-gateway is needed on Linux for host.docker.internal; harmless on
-  // macOS/Windows. Kept for portability — tx itself has no host services
+  // macOS/Windows. Kept for portability — tx-pane itself has no host services
   // today, but a developer might point it at one.
   "runArgs": [
     "--add-host=host.docker.internal:host-gateway"

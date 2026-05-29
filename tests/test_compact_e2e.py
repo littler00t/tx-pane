@@ -2,7 +2,7 @@
 
 Compaction ships default-on in terse mode. The invariants below verify
 that default calls compact, --raw preserves the pre-compaction baseline,
-and the TX_NO_COMPACT env-var escape hatch works at the subprocess boundary.
+and the TX_PANE_NO_COMPACT env-var escape hatch works at the subprocess boundary.
 
 Plug into the existing pytest+tmux infrastructure in conftest.py.
 """
@@ -36,12 +36,12 @@ def _strip_exit_line(out: str) -> str:
 # ---------------------------------------------------------------------
 
 def test_default_run_compacts_simple_echo(tx_runner):
-    """Without flags, `tx run` uses the terse default."""
+    """Without flags, `tx-pane run` uses the terse default."""
     pane = _pane_id_from(tx_runner("new"))
     res = tx_runner("run", pane, "echo hello-world", timeout=15)
     assert res.returncode == 0, res.stdout + res.stderr
     assert "hello-world" in res.stdout
-    assert "[tx:degraded" not in res.stdout
+    assert "[tx-pane:degraded" not in res.stdout
 
 
 def test_default_run_strips_banner(tx_runner):
@@ -133,12 +133,12 @@ def test_raw_beats_terse_when_both_given(tx_runner):
 
 
 # ---------------------------------------------------------------------
-# TX_NO_COMPACT=1 env var is the global kill switch
+# TX_PANE_NO_COMPACT=1 env var is the global kill switch
 # ---------------------------------------------------------------------
 
 def test_tx_no_compact_env_disables_terse(tx_runner):
     pane = _pane_id_from(tx_runner("new"))
-    tx_runner.env["TX_NO_COMPACT"] = "1"
+    tx_runner.env["TX_PANE_NO_COMPACT"] = "1"
     try:
         res = tx_runner(
             "run", "--terse", pane,
@@ -146,7 +146,7 @@ def test_tx_no_compact_env_disables_terse(tx_runner):
             timeout=15,
         )
     finally:
-        tx_runner.env.pop("TX_NO_COMPACT", None)
+        tx_runner.env.pop("TX_PANE_NO_COMPACT", None)
     assert res.returncode == 0
     # Even with --terse, env-var kill switch keeps the banner output line
     assert "Reading package lists... Done" in _body_lines(res.stdout)
@@ -166,7 +166,7 @@ def test_output_command_help_shows_compaction_flags(tx_runner):
         res = tx_runner(command, "--help", timeout=15)
         assert res.returncode == 0
         for flag in flags:
-            assert flag in res.stdout, f"{flag} missing from `tx {command} --help`"
+            assert flag in res.stdout, f"{flag} missing from `tx-pane {command} --help`"
 
 
 def test_wait_run_default_compacts_and_raw_preserves_banner(tx_runner):

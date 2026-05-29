@@ -7,7 +7,7 @@ badge, footer line, handle id, applied-layer list, byte counts for the
 telemetry record).
 
 These shapes are *stable* — later phases add fields with defaults but
-never rename or remove existing ones, so the `tx` script and out-of-tree
+never rename or remove existing ones, so the `tx-pane` script and out-of-tree
 plugins can rely on them.
 """
 
@@ -35,13 +35,13 @@ class CompactCtx:
         repeat_threshold: minimum run length for RLE collapse.
         must_keep: regex list — lines matching any pattern are preserved
                    verbatim regardless of L1/L2/L3 actions. Carries the
-                   `tx wait` match regex per design Q6.
+                   `tx-pane wait` match regex per design Q6.
         disabled_normalizers: names from the registry to skip (P4+).
         cleaned_cmd_echo: the literal echo of the command line printed by
                           the shell *before* the wrapped command's output.
                           Stripped by L1's command-echo elision when known.
         prompt_patterns: regex list, boundary-only prompt fragments to drop.
-        verbose: include Tier-1 badge in the footer (TX_DEBUG / --verbose).
+        verbose: include Tier-1 badge in the footer (TX_PANE_DEBUG / --verbose).
     """
 
     mode: str = "raw"
@@ -72,7 +72,7 @@ class CompactResult:
 
     May be None:
         handle: P3+. Opaque h-XXXX id when L4 elided content.
-        footer: P3+. The "[tx:compact tier=... layers=... handle=...]" line
+        footer: P3+. The "[tx-pane:compact tier=... layers=... handle=...]" line
                 callers append after the body. None ≡ silent (no footer).
         notes: diagnostic strings shown only in verbose mode.
     """

@@ -1,10 +1,10 @@
-"""Tests for the nested-shell fallback path and tx hook-install.
+"""Tests for the nested-shell fallback path and tx-pane hook-install.
 
 These simulate the SSH/sudo-i/docker-exec scenario by uninstalling the
 PROMPT_COMMAND/precmd hook from within the pane after creation, then
 verifying:
-1. tx run falls back to prompt-pattern detection and emits [exit:?].
-2. tx hook-install re-wires the hook and subsequent runs get real exits.
+1. tx-pane run falls back to prompt-pattern detection and emits [exit:?].
+2. tx-pane hook-install re-wires the hook and subsequent runs get real exits.
 """
 
 from __future__ import annotations
@@ -55,7 +55,7 @@ def test_nested_shell_fallback_emits_unknown_exit(tx_runner, tx_home):
     assert "nested-target" in res.stdout
     assert "[exit:?]" in res.stdout
     assert "hook-missing" in res.stdout
-    assert "tx hook-install" in res.stdout
+    assert "tx-pane hook-install" in res.stdout
 
 
 def test_hook_install_restores_real_exit_codes(tx_runner, tx_home):

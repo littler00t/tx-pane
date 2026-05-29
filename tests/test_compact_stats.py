@@ -1,4 +1,4 @@
-"""End-to-end tests for `tx compact-stats`.
+"""End-to-end tests for `tx-pane compact-stats`.
 
 Drives the actual click command via the existing tx_runner fixture and
 asserts on its plain-text and --json output. Verifies the empty-state
@@ -14,12 +14,12 @@ import pytest
 
 
 def _tx_home(tx_runner) -> Path:
-    """The TX_HOME the runner is configured against."""
-    return Path(tx_runner.env["TX_HOME"])
+    """The TX_PANE_HOME the runner is configured against."""
+    return Path(tx_runner.env["TX_PANE_HOME"])
 
 
 def _seed_telemetry(tx_runner, records: list[dict]) -> None:
-    """Write a known set of telemetry records to the test's TX_HOME."""
+    """Write a known set of telemetry records to the test's TX_PANE_HOME."""
     path = _tx_home(tx_runner) / "compact.jsonl"
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
@@ -126,7 +126,7 @@ def test_since_filter(tx_runner):
 
 
 def test_telemetry_emitted_after_terse_run(tx_runner):
-    """After running `tx run --terse`, compact-stats should show the record."""
+    """After running `tx-pane run --terse`, compact-stats should show the record."""
     # Create a pane and run a terse command that hits L1+L2
     res = tx_runner("new", timeout=15)
     assert res.returncode == 0

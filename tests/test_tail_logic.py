@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-TX_SCRIPT = Path(__file__).resolve().parent.parent / "tx"
+TX_SCRIPT = Path(__file__).resolve().parent.parent / "tx-pane"
 
 
 def _run_tx(env, *args, timeout=30.0):
@@ -51,7 +51,7 @@ def env_and_home(tmp_path):
     home = tmp_path / "tx_home"
     home.mkdir()
     env = os.environ.copy()
-    env["TX_HOME"] = str(home)
+    env["TX_PANE_HOME"] = str(home)
     return env, home
 
 
@@ -156,7 +156,7 @@ def test_dump_truncation_message(env_and_home):
     res = _run_tx(env, "dump", "--raw", "p1", "--max", "10")
     assert res.returncode == 0
     assert "[truncated:" in res.stdout
-    assert "tx dump p1 --continue" in res.stdout
+    assert "tx-pane dump p1 --continue" in res.stdout
 
 
 def test_dump_tail_returns_last_n(env_and_home):

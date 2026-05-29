@@ -2,7 +2,7 @@
 
 The newer wait_for_marker path is exercised heavily via subprocess
 integration tests, but wait_for_idle is only used by a couple of legacy
-code paths (`tx send`, `tx wait` when no marker is in flight) and slips
+code paths (`tx-pane send`, `tx-pane wait` when no marker is in flight) and slips
 through the integration net.
 """
 

@@ -2,7 +2,7 @@
 # Run the tx-specific semgrep ruleset across the source tree.
 #
 # Usage:
-#   ./scripts/semgrep              # scan tx + tx_core/ + tx_compact/
+#   ./scripts/semgrep              # scan tx-pane + tx_core/ + tx_compact/
 #   ./scripts/semgrep --test       # run the rule fixtures under semgrep/tests/
 #
 # Exits non-zero on any finding so this can be wired into CI as-is.
@@ -29,4 +29,4 @@ if [[ "${1:-}" == "--test" ]]; then
     exec semgrep scan --test --config semgrep semgrep/tests
 fi
 
-exec semgrep scan --config semgrep/ --error tx tx_core/ tx_compact/
+exec semgrep scan --config semgrep/ --error tx-pane tx_core/ tx_compact/

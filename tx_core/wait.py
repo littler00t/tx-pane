@@ -3,8 +3,8 @@
 These are the polling primitives that block until something interesting
 appears in the pipe-pane log:
 
-- `wait_for_idle`     legacy prompt/silence detection (used by `tx send`,
-                      `tx wait`, hooks-missing fallback)
+- `wait_for_idle`     legacy prompt/silence detection (used by `tx-pane send`,
+                      `tx-pane wait`, hooks-missing fallback)
 - `wait_for_marker`   v2 marker detection with a prompt-pattern fallback
 - `wait_for_marker_or_bound`  superset that also honours `--wait-for`,
                       `--fail-for`, `--until`, `--lines`, `--duration`
@@ -158,7 +158,7 @@ def wait_for_marker_or_bound(
       - "marker"   : the run's end marker was observed (normal completion).
       - "wait-for" : the wait-for regex matched in cleaned output first.
       - "fail-for" : the fail-for regex matched first.
-      - "until"    : --until regex matched (`tx stream`).
+      - "until"    : --until regex matched (`tx-pane stream`).
       - "lines"    : --lines cleaned-line count reached.
       - "duration" : --duration wall-clock elapsed.
       - "timeout"  : nothing fired before the overall `timeout`.
@@ -244,24 +244,24 @@ def truthful_timeout_message(
         return (
             f"no end marker after {int(timeout)}s; pane state=running "
             f"(last output {idle_age_s:.1f}s ago, {size}B). "
-            f"Inspect with 'tx tail {pane_id}' or 'tx kill-run {pane_id} {run_id}'."
+            f"Inspect with 'tx-pane tail {pane_id}' or 'tx-pane kill-run {pane_id} {run_id}'."
         )
     if status == "tui":
         return (
             f"no end marker after {int(timeout)}s; pane state=tui (alternate-screen on). "
-            f"Use 'tx kill-run {pane_id} {run_id}' to interrupt."
+            f"Use 'tx-pane kill-run {pane_id} {run_id}' to interrupt."
         )
     if status == "waiting-input":
         prompt = state_info.get("waiting_pattern") or "(unknown)"
         return (
             f"no end marker after {int(timeout)}s; pane state=waiting-input ('{prompt}'). "
-            f"Use 'tx run --stdin {pane_id} <text>' to feed input, "
-            f"'tx send-secret {pane_id}' for secrets, or 'tx handoff {pane_id}'."
+            f"Use 'tx-pane run --stdin {pane_id} <text>' to feed input, "
+            f"'tx-pane send-secret {pane_id}' for secrets, or 'tx-pane handoff {pane_id}'."
         )
     if status == "paused":
         return (
             f"no end marker after {int(timeout)}s; pane state=paused (handoff active). "
-            f"Run 'tx resume {pane_id}' to take control back."
+            f"Run 'tx-pane resume {pane_id}' to take control back."
         )
     if status == "dead":
         # Best-effort: include the last few lines.
@@ -288,5 +288,5 @@ def busy_error_message(pane_id: str, info: dict[str, Any]) -> str:
         f"          --queue          wait until idle, then send\n"
         f"          --stdin          feed text to the running command's stdin\n"
         f"          --kill-and-run   interrupt {run_id} (C-c), wait for prompt, then send\n"
-        f"        Or run 'tx wait-run {pane_id} {run_id}' / 'tx kill-run {pane_id} {run_id}'."
+        f"        Or run 'tx-pane wait-run {pane_id} {run_id}' / 'tx-pane kill-run {pane_id} {run_id}'."
     )

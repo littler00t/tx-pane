@@ -1,9 +1,9 @@
 """End-to-end tests for the L4 handle protocol.
 
 Verifies the reversibility contract: when L4 elides content, the agent
-can retrieve the full or sliced original via `tx output --handle`.
+can retrieve the full or sliced original via `tx-pane output --handle`.
 
-Drives real `tx run` / `tx output` invocations against an isolated
+Drives real `tx-pane run` / `tx-pane output` invocations against an isolated
 tmux server via the existing test fixtures.
 """
 
@@ -69,7 +69,7 @@ def test_terse_with_tiny_budget_emits_handle(tx_runner):
     handle = _extract_handle(res.stdout)
     assert handle is not None, f"no handle in:\n{res.stdout}"
     # Marker line is present
-    assert "tx:elided" in res.stdout
+    assert "tx-pane:elided" in res.stdout
     # Tail keeps the last lines of the awk output
     assert "id-500 payload" in res.stdout
     # The middle is elided
@@ -99,7 +99,7 @@ def test_no_handle_in_raw_mode(tx_runner):
 
 
 # ---------------------------------------------------------------------
-# Handle resolution via tx output
+# Handle resolution via tx-pane output
 # ---------------------------------------------------------------------
 
 def test_output_handle_range_returns_slice(tx_runner):
@@ -172,7 +172,7 @@ def test_output_handle_full_returns_everything(tx_runner):
     # The full body should include the middle that was elided
     assert "id-250 payload" in res2.stdout
     # And no compaction footer
-    assert "tx:elided" not in res2.stdout
+    assert "tx-pane:elided" not in res2.stdout
 
 
 def test_output_handle_expired_errors_clearly(tx_runner):
@@ -187,19 +187,19 @@ def test_output_handle_expired_errors_clearly(tx_runner):
 
 
 # ---------------------------------------------------------------------
-# TX_NO_COMPACT baseline regression
+# TX_PANE_NO_COMPACT baseline regression
 # ---------------------------------------------------------------------
 
 def test_tx_no_compact_kills_handle_emission(tx_runner):
     pane = _pane(tx_runner)
-    tx_runner.env["TX_NO_COMPACT"] = "1"
+    tx_runner.env["TX_PANE_NO_COMPACT"] = "1"
     try:
         cmd = _diverse_lines_cmd(500)
         res = tx_runner("run", "--terse", "--token-budget", "60",
                         "--max", "10000",
                         pane, cmd, timeout=30)
     finally:
-        tx_runner.env.pop("TX_NO_COMPACT", None)
+        tx_runner.env.pop("TX_PANE_NO_COMPACT", None)
     assert res.returncode == 0
     # No handle emitted under the kill switch
     assert _extract_handle(res.stdout) is None

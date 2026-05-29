@@ -232,7 +232,7 @@ def _command_preserves_whitespace(cmd: str) -> bool:
 def apply_l2_whitespace(text: str, ctx: CompactCtx) -> str:
     """Tighten blank-run cap to 1 and strip per-line trailing whitespace.
 
-    The existing `_strip_lines` in tx caps blank runs at 2 already; L2
+    The existing `_strip_lines` in tx-pane caps blank runs at 2 already; L2
     tightens to 1 (single blank between content blocks). Skipped entirely
     if ctx.cmd matches the preserve-whitespace allowlist (Python REPL,
     YAML, diff, `cat foo.py`, etc.) — for those, indentation and blank
@@ -283,7 +283,7 @@ def apply_l2_whitespace(text: str, ctx: CompactCtx) -> str:
 #       with timestamp-prefixed log lines.
 #
 # Must-keep wins: any matching line is emitted verbatim and breaks the
-# current run. This is non-negotiable — `tx wait` and `must_keep_patterns`
+# current run. This is non-negotiable — `tx-pane wait` and `must_keep_patterns`
 # (error/commit-sha/etc.) seed regexes that *must* not be summarised away.
 
 

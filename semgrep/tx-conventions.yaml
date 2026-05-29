@@ -48,16 +48,16 @@ rules:
   # ----------------------------------------------------------------------
   # tx-offsets-mutation-locked
   # ----------------------------------------------------------------------
-  # `save_offsets(...)` mutates `~/.tx/offsets.json` and must run inside
+  # `save_offsets(...)` mutates `~/.tx-pane/offsets.json` and must run inside
   # the exclusive `offsets_lock()` context. The lock is the only thing
-  # serialising concurrent tx invocations against the on-disk state.
+  # serialising concurrent tx-pane invocations against the on-disk state.
   - id: tx-offsets-mutation-locked
     severity: ERROR
     languages: [python]
     message: >-
       `save_offsets(...)` must be called inside `with offsets_lock(): ...`.
-      The lock is the only thing serialising concurrent tx invocations
-      against ~/.tx/offsets.json.
+      The lock is the only thing serialising concurrent tx-pane invocations
+      against ~/.tx-pane/offsets.json.
     patterns:
       - pattern: save_offsets(...)
       - pattern-not-inside: |
@@ -143,24 +143,24 @@ rules:
   # ----------------------------------------------------------------------
   # tx-no-hardcoded-paths
   # ----------------------------------------------------------------------
-  # `~/.tx`, `~/.tx/logs`, etc. should be reached via the `tx_core.constants`
+  # `~/.tx-pane`, `~/.tx-pane/logs`, etc. should be reached via the `tx_core.constants`
   # path constants (`TX_DIR`, `LOGS_DIR`, `CONFIG_PATH`, `OFFSETS_PATH`,
-  # `LOCK_PATH`). The constants honour the `TX_HOME` env var which the
+  # `LOCK_PATH`). The constants honour the `TX_PANE_HOME` env var which the
   # test fixtures rely on for isolation; hardcoded literals do not.
   - id: tx-no-hardcoded-paths
     severity: WARNING
     languages: [python]
     message: >-
       Reach for `TX_DIR` / `LOGS_DIR` / `CONFIG_PATH` / `OFFSETS_PATH` /
-      `LOCK_PATH` from `tx_core.constants` rather than inlining `~/.tx/...`
-      literals. The constants honour the `TX_HOME` env var that test
+      `LOCK_PATH` from `tx_core.constants` rather than inlining `~/.tx-pane/...`
+      literals. The constants honour the `TX_PANE_HOME` env var that test
       fixtures use for isolation.
-    # Match the literal string `"~/.tx"` or `"~/.tx/..."` regardless of
+    # Match the literal string `"~/.tx-pane"` or `"~/.tx-pane/..."` regardless of
     # surrounding call (`Path(...).expanduser()`, `os.path.expanduser(...)`,
     # an inline string assignment, …). The narrow regex is sufficient because
-    # `~/.tx` is a tx-specific path that has no legitimate inline literal
+    # `~/.tx-pane` is a tx-specific path that has no legitimate inline literal
     # outside `tx_core.constants`.
-    pattern-regex: '"~/\.tx[/"]'
+    pattern-regex: '"~/\.tx-pane[/"]'
     paths:
       exclude:
         - "**/tx_core/constants.py"

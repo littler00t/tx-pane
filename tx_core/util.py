@@ -1,4 +1,4 @@
-"""Stateless helpers used across the tx codebase.
+"""Stateless helpers used across the tx-pane codebase.
 
 Duration formatting / parsing, tmux version probing, bookmark resolution,
 'how long has this run been alive' math, and the sudo-prefix string. These

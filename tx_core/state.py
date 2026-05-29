@@ -31,7 +31,7 @@ from tx_core.wait import _last_non_empty_line
 
 def require_pane(offsets: dict[str, Any], pane_id: str) -> dict[str, Any]:
     if pane_id.startswith("_") or pane_id not in offsets:
-        err(f"pane '{pane_id}' not found — run 'tx ls' to see active panes")
+        err(f"pane '{pane_id}' not found — run 'tx-pane ls' to see active panes")
     return offsets[pane_id]
 
 
@@ -92,7 +92,7 @@ def pane_state(
 
     status values:
       - "dead"          : tmux pane is gone
-      - "paused"        : tx handoff in effect (state["paused_at"] set)
+      - "paused"        : tx-pane handoff in effect (state["paused_at"] set)
       - "tui"           : alternate-screen on (vim/less/htop)
       - "running"       : active_run is set and its marker is not yet in the log
       - "waiting-input" : foreground is a shell and last log line matches a
@@ -111,7 +111,7 @@ def pane_state(
             "waiting_pattern": None,
         }
 
-    # paused takes precedence over everything except dead — tx commands must
+    # paused takes precedence over everything except dead — tx-pane commands must
     # refuse while the user is mid-handoff regardless of foreground state.
     if state.get("paused_at"):
         try:
@@ -147,7 +147,7 @@ def pane_state(
             if find_run_marker(raw, run_id) is None:
                 # Marker not in log; declare 'running'. cfg_defaults trigger
                 # the same prompt-pattern fallback wait_for_marker uses so
-                # tx ls / tx status / tx runs don't show stale "running" for
+                # tx-pane ls / tx-pane status / tx-pane runs don't show stale "running" for
                 # nested-shell runs that completed without a marker.
                 if cfg_defaults is not None:
                     prompt_patterns = [re.compile(p) for p in cfg_defaults.get("prompt_patterns", [])]
@@ -256,7 +256,7 @@ def finalize_runs(
         offsets[pane_id] = state
         return state["runs"][-1]
 
-    # Fallback path: prompt + silence. Used by tx ls / tx status / tx runs so
+    # Fallback path: prompt + silence. Used by tx-pane ls / tx-pane status / tx-pane runs so
     # they don't show a stale "running" for nested-shell runs that completed
     # without a marker. Requires both: caller passed cfg_defaults, and the log
     # has been silent at least idle_silence_ms.
@@ -287,7 +287,7 @@ def pane_status(
     state: dict[str, Any],
     pane_id: str,
 ) -> tuple[str, str, str]:
-    """Back-compat: return the old (status, command, pid) tuple used by `tx ls`."""
+    """Back-compat: return the old (status, command, pid) tuple used by `tx-pane ls`."""
     info = pane_state(server, state, pane_id)
     status = info["status"]
     if status == "dead":

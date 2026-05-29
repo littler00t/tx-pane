@@ -21,10 +21,10 @@ from tx_compact import telemetry as _tel  # noqa: E402
 
 @pytest.fixture
 def tx_home_iso(tmp_path, monkeypatch):
-    """Point telemetry at an isolated TX_HOME so tests don't pollute ~/.tx."""
+    """Point telemetry at an isolated TX_PANE_HOME so tests don't pollute ~/.tx-pane."""
     home = tmp_path / "tx_home"
     home.mkdir()
-    monkeypatch.setenv("TX_HOME", str(home))
+    monkeypatch.setenv("TX_PANE_HOME", str(home))
     yield home
 
 
@@ -104,7 +104,7 @@ class TestRecord:
         assert not _tel.telemetry_path().exists()
 
     def test_env_kill_switch_skips_write(self, tx_home_iso, monkeypatch):
-        monkeypatch.setenv("TX_NO_TELEMETRY", "1")
+        monkeypatch.setenv("TX_PANE_NO_TELEMETRY", "1")
         ctx = CompactCtx(mode="terse", cmd="df -h")
         _tel.record(ctx, _mk_result())
         assert not _tel.telemetry_path().exists()

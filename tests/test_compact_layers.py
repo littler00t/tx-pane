@@ -16,7 +16,7 @@ import sys
 
 import pytest
 
-# tx_compact is a sibling package next to the tx script at the repo root.
+# tx_compact is a sibling package next to the tx-pane script at the repo root.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from tx_compact import (  # noqa: E402
     compact,
@@ -53,7 +53,7 @@ class TestCompactEntrypoint:
         assert result.in_bytes == result.out_bytes
 
     def test_tx_no_compact_env_short_circuits(self, monkeypatch):
-        monkeypatch.setenv("TX_NO_COMPACT", "1")
+        monkeypatch.setenv("TX_PANE_NO_COMPACT", "1")
         assert is_compaction_disabled() is True
         ctx = CompactCtx(mode="terse", cmd="apt list")
         # Banner that L1 would normally strip:
@@ -64,7 +64,7 @@ class TestCompactEntrypoint:
         assert result.tier == Tier.FULL
 
     def test_tx_no_compact_unset(self, monkeypatch):
-        monkeypatch.delenv("TX_NO_COMPACT", raising=False)
+        monkeypatch.delenv("TX_PANE_NO_COMPACT", raising=False)
         assert is_compaction_disabled() is False
 
     def test_terse_fires_l1_and_l2(self):
@@ -420,7 +420,7 @@ class TestCompactProperties:
 
     def test_raw_mode_byte_identical_to_input(self):
         """Raw mode is *exactly* identity — important for the
-        TX_NO_COMPACT byte-baseline regression test."""
+        TX_PANE_NO_COMPACT byte-baseline regression test."""
         ctx = CompactCtx(mode="raw", cmd="any")
         text = "anything\n\nat\nall\n   trailing  \n"
         assert compact(text, ctx).text == text
@@ -657,7 +657,7 @@ class TestL4Budget:
         assert d.head_lines >= 1
         assert d.tail_lines >= 1
         assert HANDLE_PLACEHOLDER in d.text
-        assert "tx output p1 r-abc" in d.text
+        assert "tx-pane output p1 r-abc" in d.text
         # First and last lines kept
         assert "id-0000" in d.text
         assert "id-0199" in d.text

@@ -42,7 +42,7 @@ BUILTIN_PLUGINS_DIR = _PACKAGE_ROOT / "builtin_plugins"
 
 
 def _user_dir(sub: str) -> Path:
-    home = Path(os.environ.get("TX_HOME") or str(Path.home() / ".tx"))
+    home = Path(os.environ.get("TX_PANE_HOME") or str(Path.home() / ".tx-pane"))
     return home / sub
 
 

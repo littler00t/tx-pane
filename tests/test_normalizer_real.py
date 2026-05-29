@@ -2,12 +2,12 @@
 against its actual installed binary inside the test Docker container.
 
 Per the user requirement: tests only run inside the test container
-(TX_IN_DOCKER=1, set by Dockerfile). On the host they skip cleanly.
+(TX_PANE_IN_DOCKER=1, set by Dockerfile). On the host they skip cleanly.
 
 Each test:
 1. Checks that the tool is installed (else skip).
-2. Runs `tx run --raw  <pane> <tool ...>` to capture the baseline.
-3. Runs `tx run --terse <pane> <tool ...>` to capture the compacted.
+2. Runs `tx-pane run --raw  <pane> <tool ...>` to capture the baseline.
+3. Runs `tx-pane run --terse <pane> <tool ...>` to capture the compacted.
 4. Asserts:
    - compacted output is ≤ raw output bytes
    - critical info (specified per-tool) is preserved
@@ -35,13 +35,13 @@ import pytest
 # ---------------------------------------------------------------------
 
 def _in_docker() -> bool:
-    return os.environ.get("TX_IN_DOCKER") == "1"
+    return os.environ.get("TX_PANE_IN_DOCKER") == "1"
 
 
 pytestmark = pytest.mark.skipif(
     not _in_docker(),
     reason="real-tool tests run only inside the tx-tests Docker container "
-           "(./run-tests-docker). Set TX_IN_DOCKER=1 to override.",
+           "(./run-tests-docker). Set TX_PANE_IN_DOCKER=1 to override.",
 )
 
 
@@ -56,12 +56,12 @@ def _pane(tx_runner) -> str:
 
 
 def _body_lines(stdout: str) -> list[str]:
-    """Lines of `tx run` output minus the marker/wrap noise + footer.
+    """Lines of `tx-pane run` output minus the marker/wrap noise + footer.
 
     Filters:
     - The shell's echoed wrap-command line (`__tx_run_id=...`).
     - The exit-code header (`[exit:N]`).
-    - The compaction footer (`[tx:compact ...]`).
+    - The compaction footer (`[tx-pane:compact ...]`).
     What remains is the actual command output the agent reads.
     """
     keep: list[str] = []
@@ -70,7 +70,7 @@ def _body_lines(stdout: str) -> list[str]:
             continue
         if line.startswith("[exit:"):
             continue
-        if line.startswith("[tx:compact "):
+        if line.startswith("[tx-pane:compact "):
             continue
         keep.append(line)
     return keep
@@ -195,7 +195,7 @@ class TestIptablesNormalizer:
         pane = _pane(tx_runner)
         # Non-privileged container: iptables refuses with Permission denied.
         # That's the realistic agent-facing output; normalizer leaves it
-        # alone (passthrough/degraded), tx returns it cleanly.
+        # alone (passthrough/degraded), tx-pane returns it cleanly.
         cmd = "iptables -L -n 2>&1 || true"
         raw, terse = _run_pair(tx_runner, pane, cmd)
         assert _byte_len(terse) <= _byte_len(raw)

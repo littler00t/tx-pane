@@ -18,7 +18,7 @@ npm install -g @anthropic-ai/claude-code
 echo "==> installing codex globally (inside container)"
 npm install -g @openai/codex
 
-# Warm uv's PEP-723 dep cache so the first ./run-tests / ./tx invocation
+# Warm uv's PEP-723 dep cache so the first ./run-tests / ./tx-pane invocation
 # isn't a cold download. --collect-only short-circuits pytest before it runs
 # any tests; safe to call here (it exits cleanly).
 echo "==> warming uv cache for ./run-tests"

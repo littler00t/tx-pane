@@ -35,7 +35,7 @@ def _resolve_allowlist(cfg: dict[str, Any]) -> str | list[str]:
         if "allowed_commands" not in _DEPRECATION_WARNED:
             warn(
                 "'allowed_commands' is deprecated — rename to 'command_allowlist' "
-                "in ~/.tx/config.toml ('all' | 'none' | [patterns])"
+                "in ~/.tx-pane/config.toml ('all' | 'none' | [patterns])"
             )
             _DEPRECATION_WARNED.add("allowed_commands")
         legacy = security["allowed_commands"] or []

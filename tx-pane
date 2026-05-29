@@ -7,7 +7,7 @@
 #     "tomli-w>=1.0",
 # ]
 # ///
-"""tx — tmux pane controller for Claude Code."""
+"""tx-pane — tmux pane controller for Claude Code."""
 
 from __future__ import annotations
 

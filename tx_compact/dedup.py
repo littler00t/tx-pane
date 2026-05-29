@@ -2,7 +2,7 @@
 
 Ships in P5 *disabled* (``[compact.dedup] enabled = false``). The
 machinery exists so opt-in users can enable it after a release of
-telemetry data (``tx compact-stats --dedup-would-hit``) shows the hit
+telemetry data (``tx-pane compact-stats --dedup-would-hit``) shows the hit
 rate is worth the staleness risk.
 
 Algorithm (design plan §4.5):
@@ -14,10 +14,10 @@ Algorithm (design plan §4.5):
      - within `ttl_seconds`,
      - with no intervening non-idempotent run,
    replace the emitted text with a short reference line:
-     `[tx:same-as <run_id> emitted Xs ago — handle=h-XXXX]`
+     `[tx-pane:same-as <run_id> emitted Xs ago — handle=h-XXXX]`
 
 The handle metadata is still allocated so the agent can fetch the
-full original via `tx output --handle ...`.
+full original via `tx-pane output --handle ...`.
 
 Safeguards inherited from §4.5:
 - Never cross-pane (host state).
@@ -131,7 +131,7 @@ def remember(
 def dedup_short_message(hit: DedupHit) -> str:
     """Format the short-form replacement text for a cache hit."""
     parts = [
-        "[tx:same-as",
+        "[tx-pane:same-as",
         hit.prior_run_id or "<unknown>",
         f"emitted {hit.age_seconds:.0f}s ago",
     ]

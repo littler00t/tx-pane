@@ -1,6 +1,6 @@
-# Contributing to `tx`
+# Contributing to `tx-pane`
 
-Thanks for your interest in improving `tx`. This guide covers the dev loop.
+Thanks for your interest in improving `tx-pane`. This guide covers the dev loop.
 
 ## Requirements
 
@@ -25,7 +25,7 @@ a host run and execute inside the container:
 ./run-tests-docker --rebuild      # force a clean docker build
 ```
 
-Coverage (subprocess-aware, since most CLI tests run `tx` in a subprocess):
+Coverage (subprocess-aware, since most CLI tests run `tx-pane` in a subprocess):
 
 ```sh
 ./run-coverage
@@ -42,8 +42,8 @@ Project-specific [semgrep](https://semgrep.dev/) rules live in `semgrep/`
 
 ## Adding a normalizer
 
-Drop a single file in `~/.tx/filters/<name>.toml` (line-based filter) or
-`~/.tx/plugins/<name>.py` (structural parser). See
+Drop a single file in `~/.tx-pane/filters/<name>.toml` (line-based filter) or
+`~/.tx-pane/plugins/<name>.py` (structural parser). See
 [`docs/tx-doc-compaction.md`](docs/tx-doc-compaction.md) → "Authoring a new
 normalizer" for the schema and an example. Builtins live in
 `tx_compact/builtin_filters/` and `tx_compact/builtin_plugins/`. Inline tests
@@ -59,6 +59,6 @@ changes require a major version bump and a migration path.
 ## Before opening a PR
 
 1. `./run-tests` is green.
-2. New behavior has a test and a docs update (the `tx --help` text and
+2. New behavior has a test and a docs update (the `tx-pane --help` text and
    `docs/tx-doc-reference.md` are kept in sync — see `tests/test_docs_help_contract.py`).
 3. No personal paths, secrets, or machine-specific config in the diff.

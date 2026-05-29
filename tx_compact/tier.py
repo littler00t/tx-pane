@@ -32,10 +32,10 @@ class Tier(IntEnum):
         is that output looks "natural"). Tiers 2/3 are always visible.
         """
         if self == Tier.FULL:
-            return "[tx:full]" if verbose else None
+            return "[tx-pane:full]" if verbose else None
         if self == Tier.DEGRADED:
-            return "[tx:degraded]"
-        return "[tx:passthrough]"
+            return "[tx-pane:degraded]"
+        return "[tx-pane:passthrough]"
 
 
 def degrade_on_exception(reason_prefix: str = "normalizer raised"):

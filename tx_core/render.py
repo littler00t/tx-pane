@@ -6,8 +6,8 @@ builder (`_strip_lines`), and the full compaction stack (L1-L5 via the
 the high-level emitters the CLI commands call:
 
 - `_render_run_output`     for the byte range between a run's markers
-- `_render_buffer_output`  for `tx tail` / `tx dump` / `tx wait` / `tx grep`
-- `_emit_handle_buffer`    for `tx output --handle h-XXXX`
+- `_render_buffer_output`  for `tx-pane tail` / `tx-pane dump` / `tx-pane wait` / `tx-pane grep`
+- `_emit_handle_buffer`    for `tx-pane output --handle h-XXXX`
 - `_emit_run_json`         for the `--json` shape
 
 Also owns the click decorator stack (`_compact_options`) and the per-call
@@ -89,7 +89,7 @@ def _resolve_pane_for_input(
         err(f"pane '{pane}' tmux pane missing — has it been killed externally?")
     log_path = pane_log_path(pane)
     if not log_path.exists():
-        err(f"log file missing for pane '{pane}' — pane may have been created outside tx")
+        err(f"log file missing for pane '{pane}' — pane may have been created outside tx-pane")
     return state, server, tmux_pane, log_path
 
 
@@ -148,7 +148,7 @@ def _render_buffer_output(
 ) -> list[str]:
     """Sibling of `_render_run_output` for the bypass paths.
 
-    Used by `tx tail` / `tx dump` / `tx wait` / `tx grep` / `tx stream`
+    Used by `tx-pane tail` / `tx-pane dump` / `tx-pane wait` / `tx-pane grep` / `tx-pane stream`
     which slice the log themselves (not via a marker pair) and have
     already cleaned ANSI + stripped markers. They feed the cleaned text
     straight in; compaction is optional via `compact_ctx`.
@@ -230,7 +230,7 @@ def _maybe_apply_dedup(
     hit = dedup.lookup(pane_state, text, ttl_seconds=ttl)
     if hit is not None:
         # Hit. Replace body with the short reference line; reuse the
-        # prior handle. The agent can still recover via tx output --handle.
+        # prior handle. The agent can still recover via tx-pane output --handle.
         result.applied_layers.append("L5")  # type: ignore[attr-defined]
         result.notes.append(  # type: ignore[attr-defined]
             f"L5 dedup hit: matches r-{hit.prior_run_id} from {hit.age_seconds:.0f}s ago"
@@ -256,7 +256,7 @@ def _apply_range_grep(
     grep_pat: str | None,
     grep_context: int,
 ) -> list[str]:
-    """Post-filter rendered lines via `tx output --range` / `--grep`.
+    """Post-filter rendered lines via `tx-pane output --range` / `--grep`.
 
     --range N-M    → lines[N:M+1] (0-based, inclusive). Out-of-range
                     indices clamp at the boundaries.
@@ -311,7 +311,7 @@ def _emit_handle_buffer(
 ) -> None:
     """Re-render the byte range a buffer-handle points at.
 
-    Used when `tx output --handle h-XXXX` resolves to a non-run handle
+    Used when `tx-pane output --handle h-XXXX` resolves to a non-run handle
     (tail/dump/wait/grep emissions, where there's no run_id). Reads the
     same byte range from the log; with --full it skips compaction.
     """
@@ -466,7 +466,7 @@ def _build_compact_ctx(
     cc = cfg.get("compact", {})
     ps = (pane_state or {}).get("compact") or {}
     disabled = list(ps.get("disabled_normalizers") or [])
-    # Combine caller-supplied must_keep regex (e.g. the `tx wait` pattern,
+    # Combine caller-supplied must_keep regex (e.g. the `tx-pane wait` pattern,
     # design Q6) with the config-seeded defaults (error/commit-sha/etc.).
     seed_patterns = cc.get("must_keep_patterns", []) or []
     seeded: list[re.Pattern[str]] = []
@@ -495,7 +495,7 @@ def _build_compact_ctx(
         disabled_normalizers=disabled,
         cleaned_cmd_echo=cleaned_cmd_echo,
         prompt_patterns=[re.compile(p) for p in cfg.get("defaults", {}).get("prompt_patterns", [])],
-        verbose=bool(os.environ.get("TX_DEBUG")),
+        verbose=bool(os.environ.get("TX_PANE_DEBUG")),
     )
     if per_call_no_normalize:
         # Placeholder for P4 where the registry exists; here it just signals

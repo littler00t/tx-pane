@@ -9,7 +9,7 @@ Algorithm (per design plan §4.4):
 3. If overflow: pick head N + tail M lines (50/50 split by default),
    emit them around an elision marker that names the handle.
 
-The actual handle persistence lives in the `tx` script (it needs the
+The actual handle persistence lives in the `tx-pane` script (it needs the
 offsets lock); ``apply_l4_budget`` here returns the metadata needed to
 construct a handle (raw line count) and the elided line range.
 """
@@ -126,10 +126,10 @@ def apply_l4_budget(
     pane = ctx.pane or "<pane>"
     run_or_buf = ctx.run_id or "<buffer>"
     marker = (
-        f"[tx:elided run={run_or_buf} "
+        f"[tx-pane:elided run={run_or_buf} "
         f"raw_lines={raw_lines} elided_lines={elided_count} "
         f"~{elided_tokens}tok handle={handle_placeholder}]\n"
-        f"[retrieve: tx output {pane} {run_or_buf} "
+        f"[retrieve: tx-pane output {pane} {run_or_buf} "
         f"--handle {handle_placeholder} "
         f"--range {elided_start}-{elided_end - 1}   "
         f"(or --grep PAT / --full)]"

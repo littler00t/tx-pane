@@ -1,6 +1,6 @@
 """tx_core.commands.admin — admin / maintenance commands (config / compact-stats / hook-install / write / maintain)
 
-Extracted verbatim from the monolithic `tx` script during the modular
+Extracted verbatim from the monolithic `tx-pane` script during the modular
 refactor. Each `@cli.command()` registers itself on the shared `cli`
 root group on import.
 """
@@ -16,7 +16,7 @@ from tx_core.commands._common import *  # noqa: F401,F403
     help=(
         "Send the SHELL_INIT_SETUP script to whatever shell is at the prompt now.\n\n"
         "Use after entering a nested interactive shell (ssh, sudo -i, su -, "
-        "docker exec -it, kubectl exec -it, etc.) so subsequent tx run / tx exec\n"
+        "docker exec -it, kubectl exec -it, etc.) so subsequent tx-pane run / tx-pane exec\n"
         "calls observe markers and capture exit codes.\n\n"
         "A self-test runs after install: a probe wrap is sent and we look for "
         "its marker. If it appears, the hook is wired correctly."
@@ -39,13 +39,13 @@ def cmd_hook_install(pane: str, no_verify: bool, timeout: float, shell: str | No
         offsets = load_offsets()
         state, server, tmux_pane, log_path = _resolve_pane_for_input(offsets, pane)
         if state.get("paused_at"):
-            err(f"pane '{pane}' is paused (handoff); run 'tx resume {pane}' first")
+            err(f"pane '{pane}' is paused (handoff); run 'tx-pane resume {pane}' first")
         finalize_runs(offsets, pane, max_history, cfg["defaults"])
         info = pane_state(server, offsets[pane], pane, cfg["defaults"])
         if info["status"] != "idle":
             err(
                 f"pane '{pane}' is {info['status']}; hook-install requires an idle pane "
-                f"(at a prompt). Try 'tx kill-run' or 'tx wait-run' first."
+                f"(at a prompt). Try 'tx-pane kill-run' or 'tx-pane wait-run' first."
             )
 
     init_snippet = shell_init_setup_for(shell.lower() if shell else None)
@@ -84,7 +84,7 @@ def cmd_hook_install(pane: str, no_verify: bool, timeout: float, shell: str | No
         time.sleep(0.1)
     warn(
         f"hook setup sent but probe marker '{probe_id}' did not appear within "
-        f"{int(timeout)}s. The shell may not support PROMPT_COMMAND/precmd; tx run will "
+        f"{int(timeout)}s. The shell may not support PROMPT_COMMAND/precmd; tx-pane run will "
         f"fall back to prompt-pattern detection (exit codes show as '?')."
     )
 
@@ -92,12 +92,12 @@ def cmd_hook_install(pane: str, no_verify: bool, timeout: float, shell: str | No
 @cli.command(
     name="config",
     short_help="Print active configuration.",
-    help="Print the active configuration in TOML format, plus tx and tmux versions.",
+    help="Print the active configuration in TOML format, plus tx-pane and tmux versions.",
 )
 def cmd_config() -> None:
     cfg = load_config()
     out = tomli_w.dumps(cfg)
-    click.echo(f"# tx version: {VERSION}")
+    click.echo(f"# tx-pane version: {VERSION}")
     click.echo(f"# tmux version: {_detect_tmux_version()}")
     click.echo(f"# active config file: {CONFIG_PATH}")
     click.echo(f"# offsets path: {OFFSETS_PATH}")
@@ -108,7 +108,7 @@ def cmd_config() -> None:
 # ----- compact-stats -----
 @cli.command(
     name="compact-stats",
-    short_help="Summarise compaction telemetry from ~/.tx/compact.jsonl.",
+    short_help="Summarise compaction telemetry from ~/.tx-pane/compact.jsonl.",
     help=(
         "Read the per-call telemetry log and emit aggregates. Drives the\n"
         "decision about which normalizers to ship next (and which under-\n"
@@ -128,7 +128,7 @@ def cmd_config() -> None:
 @click.option("--json", "as_json", is_flag=True, default=False,
               help="emit a single JSON object")
 @click.option("--forget", is_flag=True, default=False,
-              help="wipe ~/.tx/compact.jsonl and its backup (no read)")
+              help="wipe ~/.tx-pane/compact.jsonl and its backup (no read)")
 def cmd_compact_stats(
     weak: bool,
     passthrough: bool,
@@ -198,11 +198,11 @@ _SHA256_HEX_RE = re.compile(r"\b([0-9a-fA-F]{64})\b")
         "Refuses on busy / paused / dead panes and on fish-shell panes (no\n"
         "heredoc syntax). With --sudo, all remote operations run under\n"
         "`sudo -n`; ensure the user has valid cached credentials first\n"
-        "(e.g. via `tx sudo` once).\n\n"
+        "(e.g. via `tx-pane sudo` once).\n\n"
         "Returns one of:\n"
         "  [written: <path> (<bytes>, sha256:<first8>...)]      success\n"
         "  [error: ...]                                         abort\n"
-        "Every internal step is recorded as a run visible in `tx runs`."
+        "Every internal step is recorded as a run visible in `tx-pane runs`."
     ),
 )
 @click.argument("pane")
@@ -246,7 +246,7 @@ def cmd_write(
     except OSError as e:
         err(f"cannot read --file '{local_path}': {e}")
     if not content:
-        err(f"--file '{local_path}' is empty; tx write refuses to deploy a zero-byte file")
+        err(f"--file '{local_path}' is empty; tx-pane write refuses to deploy a zero-byte file")
 
     # heredoc always emits a trailing newline after the body; match local hash
     # to what'll actually land on disk.
@@ -256,26 +256,26 @@ def cmd_write(
     n_bytes = len(content)
 
     # ---- pane preflight ----
-    synth_cmd = f"tx write {remote_path}"
+    synth_cmd = f"tx-pane write {remote_path}"
     check_confirm(synth_cmd, cfg, yes)
     offender = check_allowlist(synth_cmd, cfg, pane_id=pane)
     if offender is not None:
-        err(f"'{offender}' not in command_allowlist — edit ~/.tx/config.toml")
+        err(f"'{offender}' not in command_allowlist — edit ~/.tx-pane/config.toml")
 
     max_history = int(cfg["defaults"].get("max_run_history", 100))
     with offsets_lock():
         offsets = load_offsets()
         state, server, tmux_pane, log_path = _resolve_pane_for_input(offsets, pane)
         if state.get("paused_at"):
-            err(f"pane '{pane}' is paused (handoff); run 'tx resume {pane}' first")
+            err(f"pane '{pane}' is paused (handoff); run 'tx-pane resume {pane}' first")
         finalize_runs(offsets, pane, max_history, cfg["defaults"])
         info = pane_state(server, offsets[pane], pane, cfg["defaults"])
         if info["status"] in ("running", "tui"):
             err(busy_error_message(pane, info))
         if info["status"] == "dead":
-            err(f"pane '{pane}' shell is dead — recreate with 'tx kill {pane}' then 'tx new {pane}'")
+            err(f"pane '{pane}' shell is dead — recreate with 'tx-pane kill {pane}' then 'tx-pane new {pane}'")
         if state.get("shell") == "fish":
-            err("tx write requires bash/zsh/sh — fish has no heredoc syntax")
+            err("tx-pane write requires bash/zsh/sh — fish has no heredoc syntax")
 
     # ---- step helpers (each is a marker-tracked run via the pane shell) ----
     quoted_target = shlex.quote(remote_path)

@@ -4,7 +4,7 @@ A run is bracketed by a unique run-id stored in the shell variable
 `__tx_run_id`. The PROMPT_COMMAND / precmd / fish_postexec hook prints a
 sentinel line `\\x01TX_END <run-id> <exit-code>\\x01` after every prompt,
 which the pane log captures via pipe-pane. Detecting that marker is the
-primary completion signal for `tx run` / `tx exec` / `tx wait-run`.
+primary completion signal for `tx-pane run` / `tx-pane exec` / `tx-pane wait-run`.
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ SHELL_INIT_SETUP = (
 )
 
 # fish's syntax is incompatible with sh/bash, so we ship a separate setup
-# for `tx new --shell fish`. fish lacks PROMPT_COMMAND; instead we hook the
+# for `tx-pane new --shell fish`. fish lacks PROMPT_COMMAND; instead we hook the
 # `fish_postexec` event, which fires after every interactive command (and
 # preserves the previous command's $status). The wrap_command form
 # `__tx_run_id=...` works in fish too — it sets a fish shell var.

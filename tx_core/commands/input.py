@@ -1,6 +1,6 @@
 """tx_core.commands.input — input-sending commands (send / key / paste / handoff / resume / send-secret / sudo)
 
-Extracted verbatim from the monolithic `tx` script during the modular
+Extracted verbatim from the monolithic `tx-pane` script during the modular
 refactor. Each `@cli.command()` registers itself on the shared `cli`
 root group on import.
 """
@@ -18,14 +18,14 @@ def cmd_send(pane: str, text: str) -> None:
     offsets = load_offsets()
     state = require_pane(offsets, pane)
     if state.get("paused_at"):
-        err(f"pane '{pane}' is paused (handoff); run 'tx resume {pane}' first")
+        err(f"pane '{pane}' is paused (handoff); run 'tx-pane resume {pane}' first")
     server = get_server()
     tmux_pane = find_pane_anywhere(server, state.get("tmux_id", ""))
     if tmux_pane is None:
         err(f"pane '{pane}' tmux pane missing — has it been killed externally?")
     offender = check_allowlist(text, cfg, pane_id=pane)
     if offender is not None:
-        err(f"'{offender}' not in command_allowlist — edit ~/.tx/config.toml")
+        err(f"'{offender}' not in command_allowlist — edit ~/.tx-pane/config.toml")
     check_confirm(text, cfg, yes=False)
     tmux_pane.send_keys(text, enter=False, suppress_history=False, literal=True)
 
@@ -57,7 +57,7 @@ def cmd_key(pane: str, keys: tuple[str, ...]) -> None:
     offsets = load_offsets()
     state = require_pane(offsets, pane)
     if state.get("paused_at"):
-        err(f"pane '{pane}' is paused (handoff); run 'tx resume {pane}' first")
+        err(f"pane '{pane}' is paused (handoff); run 'tx-pane resume {pane}' first")
     server = get_server()
     tmux_pane = find_pane_anywhere(server, state.get("tmux_id", ""))
     if tmux_pane is None:
@@ -106,20 +106,20 @@ def cmd_paste(pane: str, file_path: str | None) -> None:
         offsets = load_offsets()
         state, server, tmux_pane, log_path = _resolve_pane_for_input(offsets, pane)
         if state.get("paused_at"):
-            err(f"pane '{pane}' is paused (handoff); run 'tx resume {pane}' first")
+            err(f"pane '{pane}' is paused (handoff); run 'tx-pane resume {pane}' first")
         finalize_runs(offsets, pane, max_history, cfg["defaults"])
         info = pane_state(server, offsets[pane], pane, cfg["defaults"])
         if info["status"] in ("running", "tui"):
             err(busy_error_message(pane, info))
         if info["status"] == "dead":
-            err(f"pane '{pane}' shell is dead — recreate with 'tx kill {pane}' then 'tx new {pane}'")
+            err(f"pane '{pane}' shell is dead — recreate with 'tx-pane kill {pane}' then 'tx-pane new {pane}'")
 
     # Allowlist check uses the first non-empty line as the "command".
     first_line = next((ln for ln in content.splitlines() if ln.strip()), "")
     if first_line:
         offender = check_allowlist(first_line, cfg, pane_id=pane)
         if offender is not None:
-            err(f"'{offender}' not in command_allowlist — edit ~/.tx/config.toml")
+            err(f"'{offender}' not in command_allowlist — edit ~/.tx-pane/config.toml")
 
     # Use tmux's load-buffer + paste-buffer -p (bracketed) so the shell treats
     # the content atomically. Write via a temp file so binary-clean bytes pass
@@ -155,12 +155,12 @@ def cmd_paste(pane: str, file_path: str | None) -> None:
 # ----- handoff / resume -----
 @cli.command(
     name="handoff",
-    short_help="Pause tx control so the user can type directly.",
+    short_help="Pause tx-pane control so the user can type directly.",
     help=(
-        "Pause tx control of this pane. Subsequent tx run / tx exec / tx send /\n"
-        "tx key calls refuse with an error pointing at tx resume.\n\n"
+        "Pause tx-pane control of this pane. Subsequent tx-pane run / tx-pane exec / tx-pane send /\n"
+        "tx-pane key calls refuse with an error pointing at tx-pane resume.\n\n"
         "pipe-pane is stopped while paused; bytes the user types are not\n"
-        "captured in the on-disk log. tx resume re-attaches pipe-pane in append\n"
+        "captured in the on-disk log. tx-pane resume re-attaches pipe-pane in append\n"
         "mode and writes a divider so the seam is visible in post-mortem reads."
     ),
 )
@@ -174,25 +174,25 @@ def cmd_handoff(pane: str) -> None:
         finalize_runs(offsets, pane, max_history, cfg["defaults"])
         state = offsets[pane]
         if state.get("paused_at"):
-            err(f"pane '{pane}' is already paused (since {state['paused_at']}); run 'tx resume {pane}'")
+            err(f"pane '{pane}' is already paused (since {state['paused_at']}); run 'tx-pane resume {pane}'")
         ts = now_iso()
         # Stop the pipe so unsanctioned typing isn't logged.
         stop_pipe_pane(tmux_pane)
         # Append a divider directly to the log so the seam is obvious.
         try:
             with open(log_path, "ab") as f:
-                f.write(f"\n--- tx handoff at {ts} ---\n".encode("utf-8"))
+                f.write(f"\n--- tx-pane handoff at {ts} ---\n".encode("utf-8"))
         except OSError:
             pass
         state["paused_at"] = ts
         offsets[pane] = state
         save_offsets(offsets)
-    click.echo(f"[paused: {pane} — user has control. Resume with 'tx resume {pane}']")
+    click.echo(f"[paused: {pane} — user has control. Resume with 'tx-pane resume {pane}']")
 
 
 @cli.command(
     name="resume",
-    short_help="Resume tx control after a handoff.",
+    short_help="Resume tx-pane control after a handoff.",
     help=(
         "Re-attach pipe-pane (append mode) and clear the paused state.\n\n"
         "tail_offset is refreshed to the end of the log so reads don't bring\n"
@@ -213,7 +213,7 @@ def cmd_resume(pane: str) -> None:
         maybe_rotate_log(log_path, cfg)
         try:
             with open(log_path, "ab") as f:
-                f.write(f"--- tx resume at {ts} ---\n".encode("utf-8"))
+                f.write(f"--- tx-pane resume at {ts} ---\n".encode("utf-8"))
         except OSError:
             pass
         start_pipe_pane(tmux_pane, log_path)
@@ -224,7 +224,7 @@ def cmd_resume(pane: str) -> None:
         state["continue_offset"] = None
         offsets[pane] = state
         save_offsets(offsets)
-    click.echo(f"[resumed: {pane} — tx control restored]")
+    click.echo(f"[resumed: {pane} — tx-pane control restored]")
 
 
 # ----- send-secret -----
@@ -247,13 +247,13 @@ def cmd_send_secret(pane: str, enter: bool) -> None:
         offsets = load_offsets()
         state, server, tmux_pane, log_path = _resolve_pane_for_input(offsets, pane)
         if state.get("paused_at"):
-            err(f"pane '{pane}' is paused (handoff); run 'tx resume {pane}' first")
+            err(f"pane '{pane}' is paused (handoff); run 'tx-pane resume {pane}' first")
     # Read bytes from stdin, never from argv.
     if sys.stdin.isatty():
         err("send-secret requires stdin (pipe a value in; do not pass it as an argument)")
     secret = sys.stdin.read()
     if secret.endswith("\n") and not enter:
-        # Strip a trailing newline so callers can use `echo $PW | tx send-secret`
+        # Strip a trailing newline so callers can use `echo $PW | tx-pane send-secret`
         # without inadvertently submitting. They opt in with --enter.
         secret = secret[:-1]
     if not secret:
@@ -291,10 +291,10 @@ def cmd_send_secret(pane: str, enter: bool) -> None:
         "Convenience wrapper: prompts for the sudo password on the local TTY,\n"
         "sends `sudo -S -p '' <cmd>` to the pane, pipes the password via the\n"
         "send-secret path (so it never lands in the log), then waits for the\n"
-        "run to complete and returns its output like `tx run`.\n\n"
+        "run to complete and returns its output like `tx-pane run`.\n\n"
         "Requires an interactive TTY for the password prompt. Agents driving\n"
-        "tx without a TTY should use `tx exec ... \"sudo -S -p '' ...\"` plus\n"
-        "`tx send-secret` manually instead."
+        "tx-pane without a TTY should use `tx-pane exec ... \"sudo -S -p '' ...\"` plus\n"
+        "`tx-pane send-secret` manually instead."
     ),
 )
 @click.argument("pane")
@@ -329,27 +329,27 @@ def cmd_sudo(
 
     offender = check_allowlist(wrapped_cmd, cfg, pane_id=pane)
     if offender is not None:
-        err(f"'{offender}' not in command_allowlist — edit ~/.tx/config.toml")
+        err(f"'{offender}' not in command_allowlist — edit ~/.tx-pane/config.toml")
     check_confirm(wrapped_cmd, cfg, yes=yes)
 
     with offsets_lock():
         offsets = load_offsets()
         state, server, tmux_pane, log_path = _resolve_pane_for_input(offsets, pane)
         if state.get("paused_at"):
-            err(f"pane '{pane}' is paused (handoff); run 'tx resume {pane}' first")
+            err(f"pane '{pane}' is paused (handoff); run 'tx-pane resume {pane}' first")
         finalize_runs(offsets, pane, max_history, cfg["defaults"])
         info = pane_state(server, offsets[pane], pane, cfg["defaults"])
         if info["status"] in ("running", "tui"):
             err(busy_error_message(pane, info))
         if info["status"] == "dead":
-            err(f"pane '{pane}' shell is dead — recreate with 'tx kill {pane}' then 'tx new {pane}'")
+            err(f"pane '{pane}' shell is dead — recreate with 'tx-pane kill {pane}' then 'tx-pane new {pane}'")
         save_offsets(offsets)
 
     if not sys.stdin.isatty():
         err(
-            "tx sudo requires an interactive TTY for the password prompt. "
-            "Without a TTY, use 'tx exec <pane> \"sudo -S -p \\\"\\\" <cmd>\"' "
-            "and feed the password via 'tx send-secret <pane> --enter'."
+            "tx-pane sudo requires an interactive TTY for the password prompt. "
+            "Without a TTY, use 'tx-pane exec <pane> \"sudo -S -p \\\"\\\" <cmd>\"' "
+            "and feed the password via 'tx-pane send-secret <pane> --enter'."
         )
 
     try:
@@ -363,19 +363,19 @@ def cmd_sudo(
         offsets = load_offsets()
         state, server, tmux_pane, log_path = _resolve_pane_for_input(offsets, pane)
         if state.get("paused_at"):
-            err(f"pane '{pane}' is paused (handoff); run 'tx resume {pane}' first")
+            err(f"pane '{pane}' is paused (handoff); run 'tx-pane resume {pane}' first")
         finalize_runs(offsets, pane, max_history, cfg["defaults"])
         info = pane_state(server, offsets[pane], pane, cfg["defaults"])
         if info["status"] in ("running", "tui"):
             err(busy_error_message(pane, info))
         if info["status"] == "dead":
-            err(f"pane '{pane}' shell is dead — recreate with 'tx kill {pane}' then 'tx new {pane}'")
+            err(f"pane '{pane}' shell is dead — recreate with 'tx-pane kill {pane}' then 'tx-pane new {pane}'")
 
         # Re-check before sending in case policy or pane state changed while
         # the password prompt was open.
         offender = check_allowlist(wrapped_cmd, cfg, pane_id=pane)
         if offender is not None:
-            err(f"'{offender}' not in command_allowlist — edit ~/.tx/config.toml")
+            err(f"'{offender}' not in command_allowlist — edit ~/.tx-pane/config.toml")
         check_confirm(wrapped_cmd, cfg, yes=yes)
 
         run_id = _start_run(tmux_pane, log_path, wrapped_cmd, timeout, offsets, pane, cfg=cfg)
@@ -430,7 +430,7 @@ def cmd_sudo(
             out_parts = [f"[exit:{exit_label}]"] + shown
             if remainder:
                 out_parts.append(
-                    f"[truncated: {len(remainder)} lines remain — run: tx tail {pane} --continue]"
+                    f"[truncated: {len(remainder)} lines remain — run: tx-pane tail {pane} --continue]"
                 )
             click.echo("\n".join(out_parts), color=keep_ansi_resolved or None)
         else:

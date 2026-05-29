@@ -1,6 +1,6 @@
 """Click root group and main entry point.
 
-Owns the `TxGroup` (which routes `tx --help` to the curated HELP_TEXT)
+Owns the `TxGroup` (which routes `tx-pane --help` to the curated HELP_TEXT)
 and the `cli()` root group every command decorates with `@cli.command()`.
 Importing `tx_core.commands` is required for the side effect of
 registering every command — without it, `cli()` would dispatch nothing.

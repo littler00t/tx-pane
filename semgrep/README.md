@@ -2,7 +2,7 @@
 
 A small, hand-written semgrep ruleset that enforces conventions and
 security invariants specific to this codebase. The rules target
-patterns that are **wrong for `tx` even when they'd be fine elsewhere**;
+patterns that are **wrong for `tx-pane` even when they'd be fine elsewhere**;
 generic Python lints are out of scope (use `ruff` / `mypy` / `bandit`
 for those).
 
@@ -61,7 +61,7 @@ the ruleset stabilises.
   or the `\x01TX_END …` byte sequence; use the helpers in
   `tx_core.marker`.
 - `tx-no-hardcoded-paths` — reach for `TX_DIR` / `LOGS_DIR` /
-  `OFFSETS_PATH` constants instead of `~/.tx/...` literals.
+  `OFFSETS_PATH` constants instead of `~/.tx-pane/...` literals.
 
 **Quality (WARNING):**
 - `tx-redundant-or-none` — `state.get("x") or None` is a no-op.

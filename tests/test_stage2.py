@@ -254,10 +254,10 @@ def test_send_secret_redacts_in_log(tx_runner, tx_home):
     tx_runner("exec", pane, "read SECRET_VAR", timeout=15)
     # Give the read command a moment to actually be waiting on stdin.
     time.sleep(0.3)
-    # Use the tx_runner binding so TX_HOME and TMUX_TMPDIR are correct.
+    # Use the tx_runner binding so TX_PANE_HOME and TMUX_TMPDIR are correct.
     # We need a custom invocation that pipes stdin in.
     import os as _os
-    env = {**_os.environ, "TX_HOME": str(tx_home)}
+    env = {**_os.environ, "TX_PANE_HOME": str(tx_home)}
     # Inherit TMUX_TMPDIR from the runner's env. Simplest: spawn under bash.
     # Hack: peek at the tx_runner's closure to grab env. Not pretty; just
     # re-derive via the runner's first call by checking marker on log.
@@ -268,7 +268,7 @@ def test_send_secret_redacts_in_log(tx_runner, tx_home):
     tx_env = None
     for cell in closure or []:
         val = cell.cell_contents
-        if isinstance(val, dict) and "TX_HOME" in val:
+        if isinstance(val, dict) and "TX_PANE_HOME" in val:
             tx_env = val
             break
     assert tx_env is not None, "could not extract tx_runner env"
@@ -306,7 +306,7 @@ def test_info_emits_expected_fields(tx_runner):
     for key in ("pane:", "state:", "shell:", "log_path:", "buffer_bytes:", "tail_offset:"):
         assert key in res.stdout
     assert f"pane:" in res.stdout
-    # `created` only appears when set via tx new — should be present here.
+    # `created` only appears when set via tx-pane new — should be present here.
     assert "created:" in res.stdout
 
 
@@ -343,7 +343,7 @@ def test_on_timeout_report_default(tx_runner):
     )
     rid = res.stdout.strip().splitlines()[-1].strip()
     res2 = tx_runner("wait-run", pane, rid, "--timeout", "1", timeout=10)
-    # Default = report; output should be a timeout, exit 0 from tx, run still active
+    # Default = report; output should be a timeout, exit 0 from tx-pane, run still active
     assert res2.returncode == 0
     assert "[timeout:" in res2.stdout
     # Clean up the lingering run.

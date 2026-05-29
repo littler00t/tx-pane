@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `tx` are documented here. The format is based on
+All notable changes to `tx-pane` are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
@@ -19,7 +19,7 @@ path.
 ### Added
 - L4 token-budget head/tail elision.
 - `h-XXX` handle protocol for recovering elided output
-  (`tx output --handle h-XXX --range/--grep/--full`).
+  (`tx-pane output --handle h-XXX --range/--grep/--full`).
 - 17 builtin per-tool normalizers.
 
 ## [1.2.0]
@@ -27,7 +27,7 @@ path.
 ### Added
 - L3 repeated-line collapse (run-length encoding).
 - Three-tier output quality model and compaction telemetry.
-- `tx compact-stats`.
+- `tx-pane compact-stats`.
 
 ## [1.1.0]
 
@@ -37,7 +37,7 @@ path.
 ## [1.0.0]
 
 ### Added
-- `tx write` atomic file deploy (stage, sha256-verify, chmod/chown, atomic mv, reload).
+- `tx-pane write` atomic file deploy (stage, sha256-verify, chmod/chown, atomic mv, reload).
 - Log rotation.
 - `fish` shell marker hook.
 
@@ -48,16 +48,16 @@ path.
 ## [0.4.0]
 
 ### Added
-- `tx grep` / `tx dump` / `tx stream`.
+- `tx-pane grep` / `tx-pane dump` / `tx-pane stream`.
 - `--json` output on every command.
-- `tx sudo`, paste support, and the `[security]` safety rails
+- `tx-pane sudo`, paste support, and the `[security]` safety rails
   (allowlists, redaction, confirm patterns).
 
 ## [0.3.0]
 
 ### Added
-- `tx info`, `tx handoff` / `tx resume`, `tx send-secret`, output bookmarks,
-  `--on-timeout` policies, and `tx restart`.
+- `tx-pane info`, `tx-pane handoff` / `tx-pane resume`, `tx-pane send-secret`, output bookmarks,
+  `--on-timeout` policies, and `tx-pane restart`.
 
 ## [0.2.0]
 

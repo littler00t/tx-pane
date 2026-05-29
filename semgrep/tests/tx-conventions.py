@@ -165,27 +165,27 @@ def good_via_find_run_marker(raw: bytes, rid: str):
 
 def bad_hardcoded_path_str() -> str:
     # ruleid: tx-no-hardcoded-paths
-    return "~/.tx/offsets.json"
+    return "~/.tx-pane/offsets.json"
 
 
 def bad_expanduser_tx_dir() -> str:
     # ruleid: tx-no-hardcoded-paths
-    return os.path.expanduser("~/.tx")
+    return os.path.expanduser("~/.tx-pane")
 
 
 def bad_expanduser_tx_subpath() -> str:
     # ruleid: tx-no-hardcoded-paths
-    return os.path.expanduser("~/.tx/logs")
+    return os.path.expanduser("~/.tx-pane/logs")
 
 
 def bad_path_expanduser_tx_dir() -> Path:
     # ruleid: tx-no-hardcoded-paths
-    return Path("~/.tx").expanduser()
+    return Path("~/.tx-pane").expanduser()
 
 
 def bad_path_expanduser_tx_subpath() -> Path:
     # ruleid: tx-no-hardcoded-paths
-    return Path("~/.tx/logs").expanduser()
+    return Path("~/.tx-pane/logs").expanduser()
 
 
 def good_via_constants() -> None:

@@ -7,8 +7,8 @@ without a marker. `_apply_on_timeout` implements the --on-timeout
 report/cancel/kill policies after `wait_for_marker` returned timeout.
 
 The two `_internal_*` helpers chain a multi-step composite run (used by
-`tx write` today) behind one user-facing call: each step is its own
-marker-tracked run visible in `tx runs`, but the orchestration is
+`tx-pane write` today) behind one user-facing call: each step is its own
+marker-tracked run visible in `tx-pane runs`, but the orchestration is
 hidden from the caller.
 """
 
@@ -161,10 +161,10 @@ def _internal_marker_run(
     """Run `cmd` in `pane` via the marker protocol; block until marker or
     timeout; return (exit_code, cleaned_stdout).
 
-    Used by composite commands (currently `tx write`) that need to chain
+    Used by composite commands (currently `tx-pane write`) that need to chain
     several remote operations behind one user-facing call. Each step:
       - acquires the offsets lock briefly to allocate a run-id + record the
-        active run (so it shows up in `tx runs`),
+        active run (so it shows up in `tx-pane runs`),
       - releases the lock for the long wait,
       - re-acquires to finalize.
     Caller MUST verify the pane is idle / not paused / hook-OK before calling;
@@ -214,7 +214,7 @@ def _internal_paste_then_marker(
     """Compound: send `prelude_cmd` (which opens a heredoc), bracketed-paste
     `paste_bytes` as the heredoc body, then wait for the run's marker.
 
-    Used by `tx write` so the wrapping `__tx_run_id=...; cat > ... <<'EOF'`
+    Used by `tx-pane write` so the wrapping `__tx_run_id=...; cat > ... <<'EOF'`
     line is sent first, and the file content is streamed via tmux's buffer
     paste machinery — robust for content of any size and any byte pattern.
     """
@@ -245,7 +245,7 @@ def _internal_paste_then_marker(
         try:
             server.cmd("load-buffer", "-b", buf_name, tmp_name)
         except Exception as e:
-            err(f"tmux load-buffer failed during tx write: {e}")
+            err(f"tmux load-buffer failed during tx-pane write: {e}")
         try:
             tmux_pane.cmd("paste-buffer", "-d", "-b", buf_name, "-t", tmux_pane.pane_id)
         except Exception as e:
@@ -253,7 +253,7 @@ def _internal_paste_then_marker(
                 server.cmd("delete-buffer", "-b", buf_name)
             except Exception:
                 pass
-            err(f"tmux paste-buffer failed during tx write: {e}")
+            err(f"tmux paste-buffer failed during tx-pane write: {e}")
     finally:
         try:
             os.unlink(tmp_name)

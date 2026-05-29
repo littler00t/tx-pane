@@ -1,6 +1,6 @@
 """tx_compact — agent-facing output compaction.
 
-Public surface used by the `tx` script:
+Public surface used by the `tx-pane` script:
 
     from tx_compact import compact, CompactCtx, CompactResult, Tier
 
@@ -9,7 +9,7 @@ Design contract (see docs/tx-doc-compaction.md):
 - `compact(text, ctx)` is a pure function — no I/O, no global state.
   Determinism makes the layer trivially testable and trivially reversible
   (re-render from the on-disk log produces the same output).
-- TX_NO_COMPACT=1 short-circuits to identity (text unchanged) at the
+- TX_PANE_NO_COMPACT=1 short-circuits to identity (text unchanged) at the
   entry point. Mirrors rtk's RTK_NO_TOML=1 escape hatch.
 - The function returns a CompactResult that always tells the caller what
   happened: which layers fired, the tier, and a footer string if any.
@@ -17,7 +17,7 @@ Design contract (see docs/tx-doc-compaction.md):
 Phase 1 ships L1 hygiene + L2 whitespace only. L3 RLE / L4 budget+handle
 / L5 dedup / normalizer registry land in subsequent phases. The public
 surface here is intentionally stable so later phases extend layers.py
-without rippling through the `tx` script.
+without rippling through the `tx-pane` script.
 """
 
 from __future__ import annotations
@@ -65,13 +65,13 @@ def is_compaction_disabled() -> bool:
     Resolved at call time (not import time) so tests can monkeypatch the
     env without re-importing the module.
     """
-    return os.environ.get("TX_NO_COMPACT") == "1"
+    return os.environ.get("TX_PANE_NO_COMPACT") == "1"
 
 
 def compact(text: str, ctx: CompactCtx) -> CompactResult:
     """Run the compaction pipeline on `text`.
 
-    With ctx.mode == "raw" or the TX_NO_COMPACT env var set, this is the
+    With ctx.mode == "raw" or the TX_PANE_NO_COMPACT env var set, this is the
     identity function (text unchanged, tier=FULL, no layers reported).
     With ctx.mode == "terse" or "summary", L1 + L2 fire (P1 scope).
     """
@@ -169,7 +169,7 @@ def _build_footer(
     out_bytes: int,
     handle: str | None,
 ) -> str | None:
-    """Build the single-line `[tx:compact ...]` footer string.
+    """Build the single-line `[tx-pane:compact ...]` footer string.
 
     Returns None when nothing useful would be reported:
     - Tier.FULL with no layers + no handle (non-verbose).
@@ -191,7 +191,7 @@ def _build_footer(
     parts.append(f"out={out_bytes}B")
     if saved > 0:
         parts.append(f"saved={saved_pct:.0f}%")
-    footer = f"[tx:compact {' '.join(parts)}]"
+    footer = f"[tx-pane:compact {' '.join(parts)}]"
     # If the footer would make the response net-larger than the raw
     # input, suppress it. Tier 2/3 footers are kept regardless because
     # they convey diagnostic info the agent needs.

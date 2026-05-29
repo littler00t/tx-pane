@@ -16,11 +16,11 @@ from typing import Iterator
 
 import pytest
 
-TX_SCRIPT = Path(__file__).resolve().parent.parent / "tx"
+TX_SCRIPT = Path(__file__).resolve().parent.parent / "tx-pane"
 
 
 def _load_tx_module():
-    # The tx script has no .py extension; force the SourceFileLoader.
+    # The tx-pane script has no .py extension; force the SourceFileLoader.
     loader = importlib.machinery.SourceFileLoader("tx_mod", str(TX_SCRIPT))
     spec = importlib.util.spec_from_loader("tx_mod", loader)
     assert spec is not None
@@ -118,7 +118,7 @@ def _have_tmux() -> bool:
 
 @pytest.fixture
 def tx_runner(tx_home: Path, unique_session: str, tmp_path: Path) -> Iterator[callable]:
-    """Returns a function that runs ./tx <args> with isolated TX_HOME and a
+    """Returns a function that runs ./tx-pane <args> with isolated TX_PANE_HOME and a
     private tmux server. After the test, the tmux server is killed."""
     if not _have_tmux():
         pytest.skip("tmux not installed")
@@ -143,15 +143,15 @@ def tx_runner(tx_home: Path, unique_session: str, tmp_path: Path) -> Iterator[ca
     tmux_dir = Path(tempfile.mkdtemp(prefix="txtm-", dir="/tmp"))
 
     env = os.environ.copy()
-    env["TX_HOME"] = str(tx_home)
+    env["TX_PANE_HOME"] = str(tx_home)
     env["TMUX_TMPDIR"] = str(tmux_dir)
 
-    # Subprocess-aware coverage wrapping: when TX_COV_WRAP=1 (set by the
-    # `./run-coverage` harness), invoke tx via `uv run --script --with
+    # Subprocess-aware coverage wrapping: when TX_PANE_COV_WRAP=1 (set by the
+    # `./run-coverage` harness), invoke tx-pane via `uv run --script --with
     # coverage` so the ephemeral PEP-723 venv has `coverage` available,
     # and inject the sitecustomize that calls `coverage.process_startup()`
-    # before tx starts executing.
-    if os.environ.get("TX_COV_WRAP") == "1":
+    # before tx-pane starts executing.
+    if os.environ.get("TX_PANE_COV_WRAP") == "1":
         cov_site = Path(__file__).resolve().parent.parent / ".coverage-site"
         coveragerc = Path(__file__).resolve().parent.parent / ".coveragerc"
         env["COVERAGE_PROCESS_START"] = str(coveragerc)
@@ -174,8 +174,8 @@ def tx_runner(tx_home: Path, unique_session: str, tmp_path: Path) -> Iterator[ca
         )
 
     # Expose the fixture's env + tx-script path so tests that need to spawn
-    # tx via subprocess.Popen (concurrency tests) can use the same isolated
-    # TX_HOME / TMUX_TMPDIR pair.
+    # tx-pane via subprocess.Popen (concurrency tests) can use the same isolated
+    # TX_PANE_HOME / TMUX_TMPDIR pair.
     run.env = env  # type: ignore[attr-defined]
     run.tx_script = str(TX_SCRIPT)  # type: ignore[attr-defined]
 

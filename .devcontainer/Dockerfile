@@ -2,7 +2,7 @@
 # Node feature (see devcontainer.json) — NOT here, because the NodeSource
 # one-liner does not reliably leave npm on PATH inside this base image.
 #
-# tx is a single PEP-723 Python script that drives tmux. The runtime deps are
+# tx-pane is a single PEP-723 Python script that drives tmux. The runtime deps are
 # Python 3.11+, uv, tmux, and a POSIX-ish shell. The heavier T4 normalizer
 # toolbox (docker.io, libvirt-clients, zfsutils, systemd, …) lives in the
 # top-level Dockerfile / `./run-tests-docker` and is intentionally NOT
@@ -11,12 +11,12 @@
 FROM mcr.microsoft.com/devcontainers/python:1-3.11-bookworm
 
 # uv — used to run inline-script Python files (`# /// script` blocks),
-# which is how `./tx` and `./run-tests` execute.
+# which is how `./tx-pane` and `./run-tests` execute.
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
     && mv /root/.local/bin/uv  /usr/local/bin/uv \
     && mv /root/.local/bin/uvx /usr/local/bin/uvx
 
-# Runtime deps for tx (tmux) + QoL CLI tools.
+# Runtime deps for tx-pane (tmux) + QoL CLI tools.
 #
 # NOTE: the MS python base image preconfigures a Yarn apt source whose GPG
 # key has since rotated, which makes `apt-get update` fail fatally. We don't

@@ -1,12 +1,12 @@
 """Integration tests for Stage 3 commands and behaviours (v0.4.0).
 
 Covers:
-- Group A: dump --head, tx grep, --keep-ansi, --json, --timestamps
-- Group B: tx sudo (no-TTY refusal), redact_patterns
-- Group C: tx stream --duration/--lines/--until, run --wait-for/--fail-for
-- Group D: tx paste (file + stdin)
+- Group A: dump --head, tx-pane grep, --keep-ansi, --json, --timestamps
+- Group B: tx-pane sudo (no-TTY refusal), redact_patterns
+- Group C: tx-pane stream --duration/--lines/--until, run --wait-for/--fail-for
+- Group D: tx-pane paste (file + stdin)
 - Group E: per-pane allowlist, confirm_patterns
-- Group F: tx new --shell
+- Group F: tx-pane new --shell
 """
 
 from __future__ import annotations
@@ -127,7 +127,7 @@ def test_keep_ansi_preserves_escapes(tx_runner, tx_home):
     log_path = tx_home / "logs" / f"{pane}.log"
     with open(log_path, "ab") as f:
         f.write(b"plain \x1b[31mRED\x1b[0m plain\n")
-    # Read via tx dump --from to start at our marker.
+    # Read via tx-pane dump --from to start at our marker.
     res_strip = tx_runner("dump", pane, "--from", "preansi")
     res_keep = tx_runner("dump", pane, "--from", "preansi", "--keep-ansi")
     assert res_strip.returncode == 0 and res_keep.returncode == 0
@@ -149,7 +149,7 @@ def test_tail_timestamps_prefix(tx_runner):
     assert found, f"no [hh:mm:ss] prefix in tail output: {res.stdout!r}"
 
 
-# ----- Group A: tx grep -----
+# ----- Group A: tx-pane grep -----
 
 def test_grep_finds_matches(tx_runner):
     pane = _pane(tx_runner)
@@ -222,7 +222,7 @@ def test_grep_rejects_negative_context(tx_runner):
     assert res.returncode == 1
 
 
-# ----- Group B: tx sudo (no-TTY refusal) -----
+# ----- Group B: tx-pane sudo (no-TTY refusal) -----
 
 def test_sudo_refuses_without_tty(tx_runner):
     pane = _pane(tx_runner)
@@ -318,7 +318,7 @@ def test_redact_patterns_preserve_on_disk_log(tx_runner, tx_home):
     assert "LEAKfoo" in log_text
 
 
-# ----- Group C: tx stream -----
+# ----- Group C: tx-pane stream -----
 
 def test_stream_duration_caps_output(tx_runner):
     pane = _pane(tx_runner)
@@ -385,7 +385,7 @@ def test_stream_rejects_no_bound(tx_runner):
     assert "exactly one" in res.stdout
 
 
-# ----- Group C: tx run --wait-for / --fail-for -----
+# ----- Group C: tx-pane run --wait-for / --fail-for -----
 
 def test_run_wait_for_returns_zero_on_match(tx_runner):
     pane = _pane(tx_runner)
@@ -417,17 +417,17 @@ def test_run_fail_for_returns_one_on_match(tx_runner):
     assert "fail-for: matched" in res.stdout
 
 
-# ----- Group D: tx paste -----
+# ----- Group D: tx-pane paste -----
 
 def test_paste_via_stdin(tx_runner, tx_home):
     pane = _pane(tx_runner)
-    # tx paste reads from stdin; pipe content in.
+    # tx-pane paste reads from stdin; pipe content in.
     from conftest import TX_SCRIPT
     closure = tx_runner.__closure__
     tx_env = None
     for cell in closure or []:
         val = cell.cell_contents
-        if isinstance(val, dict) and "TX_HOME" in val:
+        if isinstance(val, dict) and "TX_PANE_HOME" in val:
             tx_env = val
             break
     assert tx_env is not None
@@ -444,7 +444,7 @@ def test_paste_via_stdin(tx_runner, tx_home):
     # Give a moment for the shell to evaluate.
     time.sleep(0.5)
     # The text should have ended up in the pane (and produced "paste-via-stdin"
-    # output once the shell ran it). Check via tx tail.
+    # output once the shell ran it). Check via tx-pane tail.
     res = tx_runner("tail", pane, timeout=10)
     assert "paste-via-stdin" in res.stdout
 
@@ -614,7 +614,7 @@ def test_confirm_allow_mode_proceeds_with_warning(tx_runner, tx_home):
     assert "allowed by confirm_mode=allow" in res.stdout
 
 
-# ----- Group F: tx new --shell -----
+# ----- Group F: tx-pane new --shell -----
 
 def test_new_shell_bash(tx_runner):
     pane = _pane(tx_runner, "--shell", "bash")

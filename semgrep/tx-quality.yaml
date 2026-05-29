@@ -19,8 +19,8 @@ rules:
   # ----------------------------------------------------------------------
   # tx-color-on-echo
   # ----------------------------------------------------------------------
-  # User-facing run output (the multi-line body emitted by `tx run` /
-  # `tx wait-run` / `tx output` / `tx wait` / `tx stream`) should pass
+  # User-facing run output (the multi-line body emitted by `tx-pane run` /
+  # `tx-pane wait-run` / `tx-pane output` / `tx-pane wait` / `tx-pane stream`) should pass
   # `color=keep_ansi_resolved or None` to `click.echo` so ANSI is
   # forwarded when the user asked for it. This rule flags the multi-line
   # `\n`.join(...) emit shape without the color kwarg.

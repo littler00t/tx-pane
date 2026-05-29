@@ -4,13 +4,13 @@ The plan in `homeserver/tx_e2e_testplan1.md` has 55 numbered cases. 44 are
 already covered elsewhere in tests/; this file closes the 10 that weren't:
 
   T-2.3 — --queue --max-wait bounds the wait
-  T-2.7 — concurrent tx run from two processes
+  T-2.7 — concurrent tx-pane run from two processes
   T-3.1 — fresh pane is idle
   T-3.3 — pane state is `tui` while a TUI owns the alt-screen
   T-4.3 — two-level nested-shell hook handling
   T-4.4 — returning from a nested shell preserves the outer hook
   T-5.3 — kill-run + recover (follow-up command works on the same pane)
-  T-5.4 — dead-shell recovery via tx kill + tx new
+  T-5.4 — dead-shell recovery via tx-pane kill + tx-pane new
   T-5.5 — marker wrapper survives pipefail / set -e style pipelines
   T-10.2 — multiple runs share pane shell state (env var carry-over)
 
@@ -69,13 +69,13 @@ def test_T_2_3_queue_max_wait_bounds_the_wait(tx_runner):
     tx_runner("kill-run", pane, run_id)
 
 
-# ============== T-2.7 — concurrent tx run from two processes ==============
+# ============== T-2.7 — concurrent tx-pane run from two processes ==============
 
 def test_T_2_7_concurrent_tx_run_serialises(tx_runner):
-    """Two simultaneous `tx run` calls against the same idle pane:
+    """Two simultaneous `tx-pane run` calls against the same idle pane:
     one wins, the other refuses with the documented busy error. This
     proves the fcntl.flock on offsets.json serialises the state check
-    across separate tx processes."""
+    across separate tx-pane processes."""
     pane = _pane(tx_runner)
     env = tx_runner.env  # exposed by conftest
     tx_script = tx_runner.tx_script
@@ -125,11 +125,11 @@ def test_T_3_3_tui_during_alt_screen(tx_runner, tx_home: Path, tmp_path: Path):
     target = tmp_path / "tx-tui-target"
     target.write_text("hello\n")
 
-    # Launch vim via tx send (NOT tx run — there's no marker to wait for).
+    # Launch vim via tx-pane send (NOT tx-pane run — there's no marker to wait for).
     tx_runner("send", pane, f"vim {target}")
     tx_runner("key", pane, "Enter")
 
-    # Wait for tmux's alternate_on bit to flip; tx pane_state surfaces it as `tui`.
+    # Wait for tmux's alternate_on bit to flip; tx-pane pane_state surfaces it as `tui`.
     deadline = time.monotonic() + 6.0
     saw_tui = False
     while time.monotonic() < deadline:
@@ -211,14 +211,14 @@ def test_T_4_4_returning_from_nested_preserves_outer_hook(tx_runner, tx_home: Pa
     r = tx_runner("run", pane, "echo in-nested", timeout=10)
     assert "[exit:0]" in r.stdout and "in-nested" in r.stdout
 
-    # Exit the nested shell using tx send (a bare `exit` line). We use send,
+    # Exit the nested shell using tx-pane send (a bare `exit` line). We use send,
     # not run, because the marker would be set by the *inner* shell that's
     # about to terminate.
     tx_runner("send", pane, "exit")
     tx_runner("key", pane, "Enter")
     time.sleep(0.6)
 
-    # Outer shell's hook should still be in place from `tx new`.
+    # Outer shell's hook should still be in place from `tx-pane new`.
     r = tx_runner("run", pane, "echo back-outside", timeout=10)
     assert "[exit:0]" in r.stdout, r.stdout
     assert "back-outside" in r.stdout

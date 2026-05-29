@@ -2,7 +2,7 @@
 
 When the `tx_runner` fixture sets `PYTHONPATH=<repo>/.coverage-site` and
 `COVERAGE_PROCESS_START=<repo>/.coveragerc`, every Python subprocess
-(including the uv-managed ephemeral venv that runs ./tx) loads this file
+(including the uv-managed ephemeral venv that runs ./tx-pane) loads this file
 on startup and begins recording into a `.coverage.<pid>` fragment.
 
 A later `coverage combine` rolls those fragments into `.coverage`. The

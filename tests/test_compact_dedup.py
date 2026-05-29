@@ -79,7 +79,7 @@ class TestShortMessage:
                              prior_handle="h-old",
                              age_seconds=12.4)
         msg = dedup.dedup_short_message(hit)
-        assert "tx:same-as" in msg
+        assert "tx-pane:same-as" in msg
         assert "r-old" in msg
         assert "12s ago" in msg
         assert "h-old" in msg
@@ -96,7 +96,7 @@ def _pane(tx_runner) -> str:
 
 
 def _enable_dedup_in_config(tx_runner) -> None:
-    cfg = Path(tx_runner.env["TX_HOME"]) / "config.toml"
+    cfg = Path(tx_runner.env["TX_PANE_HOME"]) / "config.toml"
     extras = (
         "\n[compact.dedup]\n"
         "enabled = true\n"
@@ -111,17 +111,17 @@ def _enable_dedup_in_config(tx_runner) -> None:
 
 def test_dedup_is_off_by_default(tx_runner):
     """Default config has dedup disabled → identical commands return
-    identical output, no `tx:same-as` short reference."""
+    identical output, no `tx-pane:same-as` short reference."""
     pane = _pane(tx_runner)
     tx_runner("run", "--terse", pane, "echo same-output", timeout=15)
     res2 = tx_runner("run", "--terse", pane, "echo same-output", timeout=15)
     assert res2.returncode == 0
-    assert "tx:same-as" not in res2.stdout
+    assert "tx-pane:same-as" not in res2.stdout
 
 
 def test_dedup_collapses_second_call_when_enabled(tx_runner):
     """With dedup enabled, the second of two identical compactions
-    short-circuits to a `[tx:same-as ...]` line."""
+    short-circuits to a `[tx-pane:same-as ...]` line."""
     _enable_dedup_in_config(tx_runner)
     pane = _pane(tx_runner)
     # Use a command whose compacted output is stable across runs.
@@ -131,8 +131,8 @@ def test_dedup_collapses_second_call_when_enabled(tx_runner):
     r2 = tx_runner("run", "--terse", pane, cmd, timeout=15)
     assert r2.returncode == 0
     # Second call should be deduped — short reference somewhere in stdout.
-    assert "tx:same-as" in r2.stdout or "stable line 1" in r2.stdout
+    assert "tx-pane:same-as" in r2.stdout or "stable line 1" in r2.stdout
     # If dedup fired, original content is replaced
-    if "tx:same-as" in r2.stdout:
+    if "tx-pane:same-as" in r2.stdout:
         # Body short-circuited; original text not present
         assert "stable line 2" not in r2.stdout

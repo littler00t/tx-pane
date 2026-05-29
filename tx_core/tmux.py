@@ -1,6 +1,6 @@
 """Thin libtmux wrappers used to manage the tmux server, sessions, panes,
 and pipe-pane capture. No tx-specific state lives here — these are
-mechanical helpers that translate tx's intent to libtmux/tmux calls.
+mechanical helpers that translate tx-pane's intent to libtmux/tmux calls.
 """
 
 from __future__ import annotations
@@ -51,7 +51,7 @@ def allocate_pane(
     window_name: str,
     start_directory: str | None = None,
 ) -> tuple[str, bool]:
-    """Allocate a tmux pane for tx.
+    """Allocate a tmux pane for tx-pane.
 
     Returns (tmux_pane_id, adopted) — `adopted` True iff we took over an
     existing session-initial pane (in which case the caller may need to send
@@ -59,7 +59,7 @@ def allocate_pane(
 
     - If the session has exactly one window with one unclaimed pane (i.e. just the
       session's initial shell), adopt that pane in-place.
-    - Otherwise create a new window so each tx pane is full-size in its own
+    - Otherwise create a new window so each tx-pane pane is full-size in its own
       viewport (no split layouts).
     """
     windows = list(session.windows)

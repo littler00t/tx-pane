@@ -1,7 +1,7 @@
-# Minimal Linux env for the tx test suite. Single-stage, ~150 MB.
+# Minimal Linux env for the tx-pane test suite. Single-stage, ~150 MB.
 #
 # Why this exists:
-# - tx ships only ever ran against macOS during development; this image
+# - tx-pane ships only ever ran against macOS during development; this image
 #   gives us a reproducible Linux run with modern GNU userland tooling
 #   (bash 5 / GNU chmod / GNU sha256sum) so we catch BSD-vs-GNU divergence
 #   the host can't see.
@@ -13,7 +13,7 @@ FROM python:3.11-slim-bookworm
 #
 # Plus the sysadmin toolbox needed by tx_compact's per-tool normalizer
 # tests (T4 tier). Every test in tests/test_normalizer_real_*.py runs
-# only when TX_IN_DOCKER=1 (set below), so the host install stays
+# only when TX_PANE_IN_DOCKER=1 (set below), so the host install stays
 # minimal. Tool list maps to the §5.3 normalizer roster:
 #   iproute2          → ss
 #   iptables          → iptables / iptables-legacy
@@ -47,17 +47,17 @@ RUN echo "deb http://deb.debian.org/debian bookworm main contrib" \
 # Marker env var so T4 tests can guard with a single check. Host runs of
 # `./run-tests` will NOT have this set and so will skip the tool-driven
 # tests; only `./run-tests-docker` exercises the §5.3 normalizers.
-ENV TX_IN_DOCKER=1
+ENV TX_PANE_IN_DOCKER=1
 
-# uv: PEP-723 script runner used by ./run-tests and ./tx
+# uv: PEP-723 script runner used by ./run-tests and ./tx-pane
 RUN pip install --no-cache-dir uv
 
 WORKDIR /work
 # Copy the project. .dockerignore excludes .git, .pytest_cache, the
-# ~/.tx state directory if present, and the prompt_impl_stage*.md
+# ~/.tx-pane state directory if present, and the prompt_impl_stage*.md
 # handover docs (not needed at runtime).
 COPY . /work/
-RUN chmod +x ./tx ./run-tests
+RUN chmod +x ./tx-pane ./run-tests
 
 # Warm uv's PEP-723 dep cache for the test runner so the first
 # ./run-tests invocation inside the container isn't a cold download.

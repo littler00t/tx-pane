@@ -8,7 +8,7 @@ import subprocess
 from pathlib import Path
 
 
-TX_SCRIPT = Path(__file__).resolve().parent.parent / "tx"
+TX_SCRIPT = Path(__file__).resolve().parent.parent / "tx-pane"
 REFERENCE_DOC = Path(__file__).resolve().parent.parent / "docs" / "tx-doc-reference.md"
 
 
@@ -87,7 +87,7 @@ def _help_flags(command: str, env: dict[str, str]) -> set[str]:
 
 def test_reference_command_flags_match_help(tmp_path):
     env = os.environ.copy()
-    env["TX_HOME"] = str(tmp_path / "tx_home")
+    env["TX_PANE_HOME"] = str(tmp_path / "tx_home")
     doc = REFERENCE_DOC.read_text()
 
     assert "--ignore-case" not in doc

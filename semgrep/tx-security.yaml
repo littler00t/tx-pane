@@ -2,14 +2,14 @@ rules:
   # ----------------------------------------------------------------------
   # tx-no-shell-true
   # ----------------------------------------------------------------------
-  # tx exclusively uses argv lists for subprocess invocation, never the
+  # tx-pane exclusively uses argv lists for subprocess invocation, never the
   # shell. Any shell=True / os.system / os.popen pulls the arguments
   # through /bin/sh, which is the textbook injection surface.
   - id: tx-no-shell-true
     severity: ERROR
     languages: [python]
     message: >-
-      tx forbids shell=True / os.system / os.popen — pass argv as a list to
+      tx-pane forbids shell=True / os.system / os.popen — pass argv as a list to
       subprocess.run / Popen instead. The codebase relies on argv-only
       invocation for safety; routing through the shell is an injection vector.
     patterns:
@@ -101,7 +101,7 @@ rules:
   # ----------------------------------------------------------------------
   # tx-no-stale-write-on-failed-mv
   # ----------------------------------------------------------------------
-  # `tx write` stages a file at `<dir>/.tx-write-<rand>` then `mv -f`s it
+  # `tx-pane write` stages a file at `<dir>/.tx-write-<rand>` then `mv -f`s it
   # into place. The sha256-verify between stage and move is what makes the
   # swap safe: without it a corrupted upload silently replaces the target.
   # Flag any `mv` step that omits the surrounding sha256-verify.

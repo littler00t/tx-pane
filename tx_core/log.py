@@ -3,7 +3,7 @@
 Owns the lifecycle of `<pane>.log` rotation (size threshold → `.1`, `.2`, …;
 age-based sweep of rotated copies) and the bytes-to-text pipeline that
 turns the on-disk pipe-pane capture into the cleaned `list[str]` that
-`tx tail` / `tx dump` / run rendering all consume.
+`tx-pane tail` / `tx-pane dump` / run rendering all consume.
 """
 
 from __future__ import annotations

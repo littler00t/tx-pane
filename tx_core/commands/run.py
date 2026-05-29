@@ -1,6 +1,6 @@
 """tx_core.commands.run — run-execution commands (run / exec / wait-run / output / runs / kill-run / stream)
 
-Extracted verbatim from the monolithic `tx` script during the modular
+Extracted verbatim from the monolithic `tx-pane` script during the modular
 refactor. Each `@cli.command()` registers itself on the shared `cli`
 root group on import.
 """
@@ -35,7 +35,7 @@ def _bound_pending_note(run_id: str, reason: str, matched: str | None) -> str:
     return (
         f"cancellation-pending: {reason}{detail}; C-c sent to run '{run_id}', "
         f"but no end marker or prompt fallback was observed. The run remains active; "
-        f"use 'tx wait-run' or 'tx kill-run' to finish it."
+        f"use 'tx-pane wait-run' or 'tx-pane kill-run' to finish it."
     )
 
 
@@ -44,7 +44,7 @@ def _bound_pending_note(run_id: str, reason: str, matched: str | None) -> str:
     short_help="Send command, wait for marker, return new output.",
     help=(
         "Send <cmd> + Enter. Wait for the run's end marker. Return new output.\n\n"
-        "Equivalent to `tx exec` followed by `tx wait-run` on the returned id.\n"
+        "Equivalent to `tx-pane exec` followed by `tx-pane wait-run` on the returned id.\n"
         "If the pane is busy, refuses by default — use --queue / --stdin / --kill-and-run."
     ),
 )
@@ -122,7 +122,7 @@ def cmd_run(
         state, server, tmux_pane, log_path = _resolve_pane_for_input(offsets, pane)
 
         if state.get("paused_at"):
-            err(f"pane '{pane}' is paused (handoff); run 'tx resume {pane}' first")
+            err(f"pane '{pane}' is paused (handoff); run 'tx-pane resume {pane}' first")
 
         # --stdin: send text to a running pane; no run-id, no marker.
         if stdin_mode:
@@ -133,7 +133,7 @@ def cmd_run(
             finalize_runs(offsets, pane, max_history, cfg["defaults"])
             info = pane_state(server, offsets[pane], pane, cfg["defaults"])
             if info["status"] == "idle":
-                err(f"pane '{pane}' is idle — nothing to send stdin to; use plain 'tx run' instead")
+                err(f"pane '{pane}' is idle — nothing to send stdin to; use plain 'tx-pane run' instead")
             tmux_pane.send_keys(cmd, enter=not no_enter, suppress_history=False, literal=True)
             save_offsets(offsets)
             return
@@ -159,12 +159,12 @@ def cmd_run(
                 err(busy_error_message(pane, info))
 
         if info["status"] == "dead":
-            err(f"pane '{pane}' shell is dead — recreate with 'tx kill {pane}' then 'tx new {pane}'")
+            err(f"pane '{pane}' shell is dead — recreate with 'tx-pane kill {pane}' then 'tx-pane new {pane}'")
 
         # Allowlist check (run path only).
         offender = check_allowlist(cmd, cfg, pane_id=pane)
         if offender is not None:
-            err(f"'{offender}' not in command_allowlist — edit ~/.tx/config.toml")
+            err(f"'{offender}' not in command_allowlist — edit ~/.tx-pane/config.toml")
         # Confirm-pattern check.
         check_confirm(cmd, cfg, yes)
 
@@ -274,7 +274,7 @@ def cmd_run(
                     out_parts.append(
                         f"[hook-missing: no marker observed but prompt returned — exit code unknown. "
                         f"If this pane runs a nested shell (ssh / sudo -i / etc.), run "
-                        f"'tx hook-install {pane}' to enable marker tracking there.]"
+                        f"'tx-pane hook-install {pane}' to enable marker tracking there.]"
                     )
                 if extra_note:
                     out_parts.append(f"[on-timeout: {extra_note}]")
@@ -282,7 +282,7 @@ def cmd_run(
                     out_parts.append(f"[{pattern_note}]")
                 if remainder:
                     out_parts.append(
-                        f"[truncated: {len(remainder)} lines remain — run: tx tail {pane} --continue]"
+                        f"[truncated: {len(remainder)} lines remain — run: tx-pane tail {pane} --continue]"
                     )
                 click.echo("\n".join(out_parts), color=keep_ansi_resolved or None)
         else:
@@ -318,13 +318,13 @@ def cmd_run(
     short_help="Send command, return run-id immediately (async).",
     help=(
         "Send <cmd> + Enter, record an active run, and print the run-id.\n\n"
-        "Use 'tx wait-run' to block until completion, or 'tx output' to fetch\n"
-        "its output later. Refuses on a busy pane (same options as `tx run`)."
+        "Use 'tx-pane wait-run' to block until completion, or 'tx-pane output' to fetch\n"
+        "its output later. Refuses on a busy pane (same options as `tx-pane run`)."
     ),
 )
 @click.argument("pane")
 @click.argument("cmd")
-@click.option("--timeout", "timeout", type=float, default=None, help="default timeout for tx wait-run; recorded with the run")
+@click.option("--timeout", "timeout", type=float, default=None, help="default timeout for tx-pane wait-run; recorded with the run")
 @click.option("--queue", is_flag=True, default=False)
 @click.option("--max-wait", "max_wait", type=float, default=None)
 @click.option("--kill-and-run", "kill_and_run", is_flag=True, default=False)
@@ -349,7 +349,7 @@ def cmd_exec(
         offsets = load_offsets()
         _state, server, tmux_pane, log_path = _resolve_pane_for_input(offsets, pane)
         if _state.get("paused_at"):
-            err(f"pane '{pane}' is paused (handoff); run 'tx resume {pane}' first")
+            err(f"pane '{pane}' is paused (handoff); run 'tx-pane resume {pane}' first")
         finalize_runs(offsets, pane, max_history, cfg["defaults"])
         info = pane_state(server, offsets[pane], pane, cfg["defaults"])
         if info["status"] in ("running", "tui"):
@@ -369,11 +369,11 @@ def cmd_exec(
             else:
                 err(busy_error_message(pane, info))
         if info["status"] == "dead":
-            err(f"pane '{pane}' shell is dead — recreate with 'tx kill {pane}' then 'tx new {pane}'")
+            err(f"pane '{pane}' shell is dead — recreate with 'tx-pane kill {pane}' then 'tx-pane new {pane}'")
 
         offender = check_allowlist(cmd, cfg, pane_id=pane)
         if offender is not None:
-            err(f"'{offender}' not in command_allowlist — edit ~/.tx/config.toml")
+            err(f"'{offender}' not in command_allowlist — edit ~/.tx-pane/config.toml")
         check_confirm(cmd, cfg, yes)
 
         run_id = _start_run(tmux_pane, log_path, cmd, timeout, offsets, pane, cfg=cfg)
@@ -449,7 +449,7 @@ def cmd_wait_run(
         finalize_runs(offsets, pane, max_history, cfg["defaults"])
         record = find_run_record(offsets[pane], run_id)
         if record is None:
-            err(f"run '{run_id}' not found in pane '{pane}' — run 'tx runs {pane}'")
+            err(f"run '{run_id}' not found in pane '{pane}' — run 'tx-pane runs {pane}'")
         if record.get("end_offset") is not None:
             # Already finalized; emit cached output.
             per_call_mode = _per_call_compact_mode(raw_flag, terse_flag)
@@ -493,7 +493,7 @@ def cmd_wait_run(
                 )
                 if remainder:
                     click.echo(
-                        f"[truncated: {len(remainder)} lines remain — increase --max or use 'tx output {pane} {run_id}']"
+                        f"[truncated: {len(remainder)} lines remain — increase --max or use 'tx-pane output {pane} {run_id}']"
                     )
             return
         start_offset = int(record["start_offset"])
@@ -561,13 +561,13 @@ def cmd_wait_run(
                 if exit_code is None:
                     out_parts.append(
                         f"[hook-missing: no marker observed but prompt returned — exit code unknown. "
-                        f"Try 'tx hook-install {pane}' if this pane runs a nested shell.]"
+                        f"Try 'tx-pane hook-install {pane}' if this pane runs a nested shell.]"
                     )
                 if extra_note:
                     out_parts.append(f"[on-timeout: {extra_note}]")
                 if remainder:
                     out_parts.append(
-                        f"[truncated: {len(remainder)} lines remain — increase --max or use 'tx output {pane} {run_id}']"
+                        f"[truncated: {len(remainder)} lines remain — increase --max or use 'tx-pane output {pane} {run_id}']"
                     )
                 click.echo("\n".join(out_parts), color=keep_ansi_resolved or None)
         else:
@@ -661,7 +661,7 @@ def cmd_output(
             err(
                 f"handle '{handle_id}' not found in pane '{pane}'. "
                 f"It may have expired (handles are GC'd with the run record). "
-                f"Use `tx output {pane} <run_id> --full` to re-fetch the full content."
+                f"Use `tx-pane output {pane} <run_id> --full` to re-fetch the full content."
             )
         # Carry the byte range via run_id resolution below — easier than
         # forking the read path.
@@ -743,7 +743,7 @@ def cmd_output(
         # Find the anchor; emit everything after it.
         idx = next((i for i, r in enumerate(completed) if r.get("id") == since_run), None)
         if idx is None:
-            err(f"run '{since_run}' not found in pane '{pane}' — run 'tx runs {pane}'")
+            err(f"run '{since_run}' not found in pane '{pane}' — run 'tx-pane runs {pane}'")
         slice_runs = completed[idx + 1:]
         if not slice_runs:
             click.echo(f"[empty: no runs recorded after '{since_run}']")
@@ -774,9 +774,9 @@ def cmd_output(
     # Default: explicit run_id.
     record = find_run_record(state, run_id)  # type: ignore[arg-type]
     if record is None:
-        err(f"run '{run_id}' not found in pane '{pane}' — run 'tx runs {pane}'")
+        err(f"run '{run_id}' not found in pane '{pane}' — run 'tx-pane runs {pane}'")
     if record.get("end_offset") is None:
-        err(f"run '{run_id}' is still active — use 'tx wait-run {pane} {run_id}' to block")
+        err(f"run '{run_id}' is still active — use 'tx-pane wait-run {pane} {run_id}' to block")
     per_call_mode = _per_call_compact_mode(raw_flag, terse_flag)
     compact_ctx = _build_compact_ctx(
         cfg, state, pane, record.get("cmd", ""), record.get("id"), per_call_mode,
@@ -911,7 +911,7 @@ def cmd_kill_run(pane: str, run_id: str) -> None:
             save_offsets(offsets)
             click.echo(
                 f"[killed: C-c sent to run '{run_id}', but no end marker observed after 3s — "
-                f"the process may be ignoring SIGINT. Use 'tx kill {pane}' to destroy the pane.]"
+                f"the process may be ignoring SIGINT. Use 'tx-pane kill {pane}' to destroy the pane.]"
             )
 
 
@@ -919,7 +919,7 @@ def cmd_kill_run(pane: str, run_id: str) -> None:
     name="stream",
     short_help="Run a command, capture output until a bound, then C-c and return.",
     help=(
-        "Run <cmd> as a normal tx exec, watch the output, and as soon as one of\n"
+        "Run <cmd> as a normal tx-pane exec, watch the output, and as soon as one of\n"
         "the bounds is reached send C-c to terminate the command. Returns the\n"
         "captured output (everything from the run's start to the C-c).\n\n"
         "Exactly one bound must be specified:\n"
@@ -997,17 +997,17 @@ def cmd_stream(
         offsets = load_offsets()
         state, server, tmux_pane, log_path = _resolve_pane_for_input(offsets, pane)
         if state.get("paused_at"):
-            err(f"pane '{pane}' is paused (handoff); run 'tx resume {pane}' first")
+            err(f"pane '{pane}' is paused (handoff); run 'tx-pane resume {pane}' first")
         finalize_runs(offsets, pane, max_history, cfg["defaults"])
         info = pane_state(server, offsets[pane], pane, cfg["defaults"])
         if info["status"] in ("running", "tui"):
             err(busy_error_message(pane, info))
         if info["status"] == "dead":
-            err(f"pane '{pane}' shell is dead — recreate with 'tx kill {pane}' then 'tx new {pane}'")
+            err(f"pane '{pane}' shell is dead — recreate with 'tx-pane kill {pane}' then 'tx-pane new {pane}'")
 
         offender = check_allowlist(cmd, cfg, pane_id=pane)
         if offender is not None:
-            err(f"'{offender}' not in command_allowlist — edit ~/.tx/config.toml")
+            err(f"'{offender}' not in command_allowlist — edit ~/.tx-pane/config.toml")
         check_confirm(cmd, cfg, yes)
 
         run_id = _start_run(tmux_pane, log_path, cmd, timeout, offsets, pane, cfg=cfg)
@@ -1084,7 +1084,7 @@ def cmd_stream(
             out_parts.append(f"[{bound_note}]")
         if remainder:
             out_parts.append(
-                f"[truncated: {len(remainder)} lines remain — run: tx tail {pane} --continue]"
+                f"[truncated: {len(remainder)} lines remain — run: tx-pane tail {pane} --continue]"
             )
         click.echo("\n".join(out_parts), color=keep_ansi_resolved or None)
         return
@@ -1094,6 +1094,6 @@ def cmd_stream(
         out_parts.append(f"[{bound_note}]")
     if remainder:
         out_parts.append(
-            f"[truncated: {len(remainder)} lines remain — run: tx tail {pane} --continue]"
+            f"[truncated: {len(remainder)} lines remain — run: tx-pane tail {pane} --continue]"
         )
     click.echo("\n".join(out_parts), color=keep_ansi_resolved or None)

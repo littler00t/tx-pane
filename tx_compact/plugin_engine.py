@@ -2,7 +2,7 @@
 
 Plugin shape (one file per normalizer per design §5.5 rule 1):
 
-    # ~/.tx/plugins/zpool_status.py
+    # ~/.tx-pane/plugins/zpool_status.py
     SCHEMA_VERSION = 1
     NAME           = "zpool-status"
     MATCH_COMMAND  = r"^zpool\\s+status\\b"

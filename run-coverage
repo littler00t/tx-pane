@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Subprocess-aware coverage harness.
 #
-# Records coverage from BOTH the in-process pytest run AND every `./tx`
+# Records coverage from BOTH the in-process pytest run AND every `./tx-pane`
 # subprocess that the `tx_runner` fixture spawns. The fixture honours
-# TX_COV_WRAP=1 by wrapping each invocation with `uv run --script --with
+# TX_PANE_COV_WRAP=1 by wrapping each invocation with `uv run --script --with
 # coverage`, then a sitecustomize hook (.coverage-site/sitecustomize.py)
-# starts coverage on Python startup before tx executes.
+# starts coverage on Python startup before tx-pane executes.
 #
 # Per-process fragments land at .coverage.<host>.<pid>.<N>; `coverage
 # combine` rolls them into the final `.coverage` file.
@@ -18,10 +18,10 @@ cd "$(dirname "$0")"
 # only this invocation.
 rm -f .coverage .coverage.*
 
-export TX_COV_WRAP=1
+export TX_PANE_COV_WRAP=1
 export COVERAGE_PROCESS_START="$PWD/.coveragerc"
 # Make sure subprocess pythons (including the uv-managed venv used by
-# ./tx) pick up the coverage bootstrap shim.
+# ./tx-pane) pick up the coverage bootstrap shim.
 export PYTHONPATH="$PWD/.coverage-site${PYTHONPATH:+:$PYTHONPATH}"
 
 uv run \

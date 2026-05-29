@@ -2,12 +2,12 @@
 
 Handles are the reversibility contract of the compaction stage: when
 L4 elides content, it emits a handle the agent can pass back to
-`tx output --handle h-XXXX --range N-M` to recover any slice of the
+`tx-pane output --handle h-XXXX --range N-M` to recover any slice of the
 original output.
 
 A handle is *not* a hash of the content. It's a key into per-pane
 state stored under offsets.json::<pane>.compact.handles. The full
-content is *already* on disk at $TX_HOME/logs/<pane>.log between
+content is *already* on disk at $TX_PANE_HOME/logs/<pane>.log between
 start_offset and end_offset — the handle just records which bytes.
 
 Lifecycle:
