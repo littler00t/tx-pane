@@ -55,7 +55,8 @@ repo root. Pane name = `$ARGUMENTS` if given, else `demo`.
 ## Act 4 — show compaction + structured output
 
 - `tx-pane run "$pane" "df -h"` — point out the per-tool normalizer and the
-  `[tx-pane:compact ...]` footer (typical 45–60% savings).
+  `[tx-pane:compact ...]` footer (≈46% across the sampled tools, more on
+  noisy ones).
 - `tx-pane run --json "$pane" "uname -a" | jq .exit` — a real, structured exit
   code, not a guess.
 
