@@ -1,0 +1,166 @@
+rules:
+  # ----------------------------------------------------------------------
+  # tx-error-via-err-helper
+  # ----------------------------------------------------------------------
+  # Error paths must call `err("…")` from `tx_core.output` (which prints
+  # `[error: …]` and sys.exit(1)) rather than the open-coded
+  # `click.echo("[error: …]") + sys.exit(1)` pattern. Same payload, but
+  # the helper keeps the format consistent + grep-able.
+  - id: tx-error-via-err-helper
+    severity: WARNING
+    languages: [python]
+    message: >-
+      Use `err("…")` from `tx_core.output` instead of open-coding
+      `click.echo("[error: …]")` + `sys.exit(1)`. Keeps the error format
+      consistent and grep-able.
+    patterns:
+      - pattern: |
+          click.echo($MSG)
+          sys.exit($N)
+      - metavariable-regex:
+          metavariable: $MSG
+          regex: '^f?"\[error:.*'
+    paths:
+      exclude:
+        # err() itself is the legitimate `click.echo("[error: ...]")` site.
+        - "**/tx_core/output.py"
+
+  # ----------------------------------------------------------------------
+  # tx-warn-via-warn-helper
+  # ----------------------------------------------------------------------
+  # Warning paths must call `warn("…")` from `tx_core.output` rather than
+  # the open-coded `click.echo("[warning: …]")` pattern.
+  - id: tx-warn-via-warn-helper
+    severity: WARNING
+    languages: [python]
+    message: >-
+      Use `warn("…")` from `tx_core.output` instead of open-coding
+      `click.echo("[warning: …]")`. Keeps the warning format consistent.
+    patterns:
+      - pattern: click.echo($MSG)
+      - metavariable-regex:
+          metavariable: $MSG
+          regex: '^f?"\[warning:.*'
+    paths:
+      exclude:
+        - "**/tx_core/output.py"
+
+  # ----------------------------------------------------------------------
+  # tx-offsets-mutation-locked
+  # ----------------------------------------------------------------------
+  # `save_offsets(...)` mutates `~/.tx/offsets.json` and must run inside
+  # the exclusive `offsets_lock()` context. The lock is the only thing
+  # serialising concurrent tx invocations against the on-disk state.
+  - id: tx-offsets-mutation-locked
+    severity: ERROR
+    languages: [python]
+    message: >-
+      `save_offsets(...)` must be called inside `with offsets_lock(): ...`.
+      The lock is the only thing serialising concurrent tx invocations
+      against ~/.tx/offsets.json.
+    patterns:
+      - pattern: save_offsets(...)
+      - pattern-not-inside: |
+          with offsets_lock() as $L:
+              ...
+      - pattern-not-inside: |
+          with offsets_lock():
+              ...
+      - pattern-not-inside: |
+          def save_offsets(...):
+              ...
+    paths:
+      exclude:
+        - "**/tx_core/config.py"
+        # cmd_new / cmd_restart / cmd_kill do their own state setup and
+        # are the only writers for newly-created pane records, so the
+        # exclusive lock would only serialise against itself. Read-side
+        # commands (cmd_tail / cmd_dump / cmd_grep / cmd_wait) advance
+        # tail_offset best-effort; concurrent readers can produce
+        # overlapping output but never corrupt the file (save_offsets
+        # uses an atomic rename).
+        - "**/tx_core/commands/panes.py"
+        - "**/tx_core/commands/read.py"
+
+  # ----------------------------------------------------------------------
+  # tx-tmux-via-wrappers
+  # ----------------------------------------------------------------------
+  # All tmux-server creation must go through `tx_core.tmux.get_server()`
+  # (and friends). The wrapper handles the no-tmux-installed error path
+  # uniformly; direct `libtmux.Server()` calls bypass that and surface a
+  # raw libtmux exception to the user.
+  - id: tx-tmux-via-wrappers
+    severity: WARNING
+    languages: [python]
+    message: >-
+      Use `get_server()` from `tx_core.tmux` instead of constructing
+      `libtmux.Server()` directly. The wrapper handles the no-tmux-installed
+      error path uniformly across the codebase.
+    pattern: libtmux.Server()
+    paths:
+      exclude:
+        # The wrapper itself is the only legitimate construction site.
+        - "**/tx_core/tmux.py"
+
+  # NOTE: tx-pane-resolution-via-helper was specced in the original plan
+  # but dropped during the initial whole-tree dry run. Every flagged call
+  # site (cmd_new / cmd_restart / cmd_wait_run) used find_pane_anywhere
+  # for a different reason — verifying a just-allocated pane, probing a
+  # dead-vs-alive pane, or paired with a record lookup that doesn't fit
+  # _resolve_pane_for_input's signature. The "duplicate preflight"
+  # anti-pattern the rule was meant to catch isn't expressible without
+  # per-callsite intent.
+  #
+  # ----------------------------------------------------------------------
+  # tx-marker-via-protocol
+  # ----------------------------------------------------------------------
+  # Run-id strings are produced by `make_run_id()` (returns `r-<hex>`).
+  # Inlining `f"r-{secrets.token_hex(...)}"` bypasses the helper and any
+  # future change to the format (length, prefix). Same for the marker byte
+  # sequence — use `wrap_command` / `find_run_marker` / `strip_run_markers`
+  # rather than embedding `\x01TX_END …` literals.
+  - id: tx-marker-via-protocol
+    severity: ERROR
+    languages: [python]
+    message: >-
+      Use `make_run_id()` (tx_core.marker) instead of inlining
+      `f"r-{secrets.token_hex(...)}"`. Likewise, never embed the marker
+      byte sequence — use `wrap_command` / `find_run_marker` /
+      `strip_run_markers` from `tx_core.marker`.
+    pattern-either:
+      - pattern: f"r-{secrets.token_hex(...)}"
+      - pattern: '"r-" + secrets.token_hex(...)'
+      # The literal `\x01TX_END …` byte sequence — match via regex so it's
+      # caught regardless of f-string vs. b"" vs. "" wrapping.
+      - pattern-regex: 'TX_END\s+r-'
+      - pattern-regex: 'TX_END\s+\{'
+    paths:
+      exclude:
+        # The marker module legitimately defines the sentinel + run-id format.
+        - "**/tx_core/marker.py"
+        - "**/tx_core/constants.py"
+
+  # ----------------------------------------------------------------------
+  # tx-no-hardcoded-paths
+  # ----------------------------------------------------------------------
+  # `~/.tx`, `~/.tx/logs`, etc. should be reached via the `tx_core.constants`
+  # path constants (`TX_DIR`, `LOGS_DIR`, `CONFIG_PATH`, `OFFSETS_PATH`,
+  # `LOCK_PATH`). The constants honour the `TX_HOME` env var which the
+  # test fixtures rely on for isolation; hardcoded literals do not.
+  - id: tx-no-hardcoded-paths
+    severity: WARNING
+    languages: [python]
+    message: >-
+      Reach for `TX_DIR` / `LOGS_DIR` / `CONFIG_PATH` / `OFFSETS_PATH` /
+      `LOCK_PATH` from `tx_core.constants` rather than inlining `~/.tx/...`
+      literals. The constants honour the `TX_HOME` env var that test
+      fixtures use for isolation.
+    # Match the literal string `"~/.tx"` or `"~/.tx/..."` regardless of
+    # surrounding call (`Path(...).expanduser()`, `os.path.expanduser(...)`,
+    # an inline string assignment, …). The narrow regex is sufficient because
+    # `~/.tx` is a tx-specific path that has no legitimate inline literal
+    # outside `tx_core.constants`.
+    pattern-regex: '"~/\.tx[/"]'
+    paths:
+      exclude:
+        - "**/tx_core/constants.py"

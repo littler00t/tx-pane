@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Subprocess-aware coverage harness.
+#
+# Records coverage from BOTH the in-process pytest run AND every `./tx`
+# subprocess that the `tx_runner` fixture spawns. The fixture honours
+# TX_COV_WRAP=1 by wrapping each invocation with `uv run --script --with
+# coverage`, then a sitecustomize hook (.coverage-site/sitecustomize.py)
+# starts coverage on Python startup before tx executes.
+#
+# Per-process fragments land at .coverage.<host>.<pid>.<N>; `coverage
+# combine` rolls them into the final `.coverage` file.
+
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+# Clean any stale fragments from prior runs so the final picture is
+# only this invocation.
+rm -f .coverage .coverage.*
+
+export TX_COV_WRAP=1
+export COVERAGE_PROCESS_START="$PWD/.coveragerc"
+# Make sure subprocess pythons (including the uv-managed venv used by
+# ./tx) pick up the coverage bootstrap shim.
+export PYTHONPATH="$PWD/.coverage-site${PYTHONPATH:+:$PYTHONPATH}"
+
+uv run \
+  --with pytest \
+  --with pytest-cov \
+  --with coverage \
+  --with libtmux \
+  --with click \
+  --with tomli-w \
+  pytest "$@" --cov=tx_core --cov-config=.coveragerc --cov-report= -q tests/
+
+# pytest-cov merges its in-process fragment with every per-process
+# subprocess fragment at session exit and writes the result to `.coverage`.
+# Report straight from that combined file.
+uv run --with coverage coverage report --rcfile=.coveragerc

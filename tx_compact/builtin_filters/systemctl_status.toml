@@ -1,0 +1,30 @@
+schema_version = 1
+
+# `systemctl status <unit>` happy path: `Active: active (running)`.
+# Anomaly path: `failed`, `inactive`, or `exited (N)` with N>0 — fall
+# through to full output so the agent sees the diagnosis.
+
+[filters.systemctl-status]
+description = "Collapse healthy systemctl status to one line."
+match_command = "^systemctl\\s+(status|is-active)\\b"
+match_output = [
+  { pattern = "Active:\\s+active\\s+\\(running\\)", message = "systemctl: active (running)", unless = "failed|exited \\([1-9]|inactive\\b|Loaded: error" },
+]
+max_lines = 60
+
+[[tests.systemctl-status]]
+name = "healthy collapses"
+input = """● nginx.service - A high performance web server
+   Loaded: loaded (/lib/systemd/system/nginx.service; enabled)
+   Active: active (running) since Wed 2026-05-14 03:14:01 UTC; 2h ago
+"""
+expected = "systemctl: active (running)"
+
+[[tests.systemctl-status]]
+name = "failed falls through"
+input = """● nginx.service - A high performance web server
+   Loaded: loaded (...)
+   Active: failed (Result: exit-code)
+   Main PID: 1234 (code=exited, status=1/FAILURE)
+"""
+expected_contains = ["failed", "exit-code"]

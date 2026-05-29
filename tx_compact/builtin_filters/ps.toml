@@ -1,0 +1,35 @@
+schema_version = 1
+
+# `ps auxf` / `ps -ef` produce wide output where CMD is the only
+# meaningful column most of the time. Truncate per-line at 120 chars
+# (CMD args are often paths/classpaths that go on forever) and cap at
+# 50 rows. The header row stays — `PID` / `USER` columns are still
+# useful for agent reasoning.
+
+[filters.ps]
+description = "Truncate ps lines and cap row count."
+match_command = "^ps\\b"
+min_savings_pct = 20
+truncate_lines_at = 120
+max_lines = 50
+
+[[tests.ps]]
+name = "truncates long command lines"
+input = "USER PID CMD\nroot  1  /usr/lib/jvm/java-17/bin/java -cp /opt/very/long/classpath -Dfoo=bar -Xmx2g -Xms512m com.example.Main --config /etc/example/config.yaml --port 8080 --verbose"
+expected_contains = ["USER PID CMD", "/usr/lib/jvm/java-17/bin/java"]
+
+[[tests.ps]]
+name = "caps rows at max_lines"
+input = """USER PID CMD
+a 1 ls
+b 2 ls
+c 3 ls
+d 4 ls
+e 5 ls
+f 6 ls
+g 7 ls
+h 8 ls
+i 9 ls
+j 10 ls
+"""
+expected_contains = ["USER PID CMD", "a 1 ls"]

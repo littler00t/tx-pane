@@ -1,0 +1,31 @@
+schema_version = 1
+
+# `smartctl -A` prints the attribute table. Banner is L1-stripped; here
+# we keep only the column-aligned attribute rows and the critical
+# fields. The header line itself is preserved so the agent can see the
+# columns. Rows starting with a number-then-space pattern are attributes.
+
+[filters.smartctl-attrs]
+description = "Keep smartctl -A attribute rows, drop preamble + section headers."
+match_command = "^smartctl\\s+-A\\b"
+keep_lines_matching = [
+  "^\\s*ID#",                  # column header
+  "^\\s*\\d+\\s+\\w+",         # attribute rows
+]
+truncate_lines_at = 200
+max_lines = 40
+
+[[tests.smartctl-attrs]]
+name = "keeps attribute rows"
+input = """smartctl 7.3 2022-02-28 r5338 [x86_64-linux] (local build)
+Copyright (C) 2002-22, Bruce Allen, smartmontools.org
+
+=== START OF READ SMART DATA SECTION ===
+SMART Attributes Data Structure revision number: 16
+Vendor Specific SMART Attributes with Thresholds:
+ID# ATTRIBUTE_NAME          FLAG     VALUE WORST THRESH TYPE      UPDATED  WHEN_FAILED RAW_VALUE
+  1 Raw_Read_Error_Rate     0x000f   100   100   006    Pre-fail  Always       -       0
+  5 Reallocated_Sector_Ct   0x0033   100   100   010    Pre-fail  Always       -       0
+197 Current_Pending_Sector  0x0012   100   100   000    Old_age   Always       -       0
+"""
+expected_contains = ["Raw_Read_Error_Rate", "Reallocated_Sector_Ct", "Current_Pending_Sector"]

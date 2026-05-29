@@ -1,0 +1,67 @@
+rules:
+  # ----------------------------------------------------------------------
+  # tx-redundant-or-none
+  # ----------------------------------------------------------------------
+  # `state.get("x") or None` reduces to `state.get("x")` — the `or None`
+  # branch is unreachable. A common typo (often a stale half-edit) that
+  # obscures intent.
+  - id: tx-redundant-or-none
+    severity: WARNING
+    languages: [python]
+    message: >-
+      `... or None` after a `.get(...)` (or any expression that already
+      returns None on absence) is a no-op. Remove the redundant
+      `or None`.
+    pattern-either:
+      - pattern: $X.get(...) or None
+      - pattern: $X.get($K, $D) or None
+
+  # ----------------------------------------------------------------------
+  # tx-color-on-echo
+  # ----------------------------------------------------------------------
+  # User-facing run output (the multi-line body emitted by `tx run` /
+  # `tx wait-run` / `tx output` / `tx wait` / `tx stream`) should pass
+  # `color=keep_ansi_resolved or None` to `click.echo` so ANSI is
+  # forwarded when the user asked for it. This rule flags the multi-line
+  # `\n`.join(...) emit shape without the color kwarg.
+  #
+  # Scoped to `tx_core/commands/run.py` and `tx_core/commands/read.py`,
+  # where the canonical run-output emitters live. Other command modules
+  # (panes / admin) intentionally emit metadata in monochrome.
+  - id: tx-color-on-echo
+    severity: WARNING
+    languages: [python]
+    message: >-
+      Multi-line `click.echo("\n".join(...))` in a run-emitting command
+      should pass `color=keep_ansi_resolved or None` so ANSI is forwarded
+      to the terminal when the user passed `--keep-ansi`. See
+      tx_core/commands/run.py:cmd_run for the canonical shape.
+    patterns:
+      - pattern: click.echo("\n".join($PARTS))
+      - pattern-not: click.echo("\n".join($PARTS), color=$C)
+    paths:
+      exclude:
+        # cmd_info / cmd_ls / cmd_runs in panes.py and cmd_compact-stats in
+        # admin.py emit metadata tables (no ANSI content), so the color
+        # kwarg is irrelevant. The rule is for run-output emitters in
+        # commands/run.py + commands/read.py.
+        - "**/tx_core/commands/panes.py"
+        - "**/tx_core/commands/admin.py"
+        - "**/tx_core/commands/input.py"
+
+  # NOTE: rules dropped during the initial whole-tree dry run because they
+  # didn't fit this codebase's deliberate idioms; documented here so the
+  # decision survives:
+  #
+  # - tx-no-bare-except — the codebase uses `try: <best-effort tmux call>
+  #   except Exception: pass` heavily across runner / commands as a
+  #   recovery-path idiom. Excluding only proc.py + tmux.py (per the plan)
+  #   left ~26 legitimate matches. A precise rule would need to
+  #   distinguish "swallowing a real bug" from "best-effort pane cleanup",
+  #   which is hard to express in semgrep without per-call annotations.
+  #
+  # - tx-re-compile-in-loop — every match was a one-shot config-loader
+  #   loop (toml_engine.py / render.py:_build_compact_ctx) where each
+  #   pattern in user config is compiled once at load. The
+  #   "in a loop" check is too coarse to distinguish that from the
+  #   actual hot-loop anti-pattern.

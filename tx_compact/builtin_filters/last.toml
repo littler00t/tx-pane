@@ -1,0 +1,25 @@
+schema_version = 1
+
+# `last` and `lastlog` end in `wtmp begins ...` (already in L1 banner
+# registry — but explicit strip here too for safety) and have a noisy
+# "Never logged in" for service accounts.
+
+[filters.last]
+description = "Drop wtmp footer + `Never logged in` rows; cap at 20."
+match_command = "^last(log)?\\b"
+strip_lines_matching = [
+  "^wtmp begins ",
+  "^btmp begins ",
+  "Never logged in",
+]
+max_lines = 20
+
+[[tests.last]]
+name = "drops footer"
+input = "alice pts/0 :0 Mon Jan 1 12:00:00 2026   still logged in\nwtmp begins Fri Jan 1 00:00:00 2025\n"
+expected_contains = ["alice"]
+
+[[tests.last]]
+name = "drops Never logged in"
+input = "alice    pts/0 :0   Wed May 14 03:14 - down\nroot       **Never logged in**\nsystemd  **Never logged in**\n"
+expected_contains = ["alice"]

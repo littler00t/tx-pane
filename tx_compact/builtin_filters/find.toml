@@ -1,0 +1,25 @@
+schema_version = 1
+
+# `find <path>` interleaves matching paths with hundreds of
+# `find: '<dir>': Permission denied` lines when run as non-root.
+# Stripping those is pure win — the matching paths are what the agent
+# actually needs.
+
+[filters.find]
+description = "Strip find Permission-denied clutter; cap at 100 rows."
+match_command = "^find\\b"
+strip_lines_matching = [
+  "^find: .*: Permission denied",
+  "^find: .*: Operation not permitted",
+]
+max_lines = 100
+
+[[tests.find]]
+name = "strips perm-denied lines"
+input = """/etc/passwd
+find: '/etc/ssl/private': Permission denied
+find: '/root': Permission denied
+/etc/hostname
+find: '/var/cache/private': Permission denied
+"""
+expected_contains = ["/etc/passwd", "/etc/hostname"]

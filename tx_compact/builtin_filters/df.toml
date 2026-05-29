@@ -1,0 +1,32 @@
+schema_version = 1
+
+# `df` and `df -h` print Filesystem/Size/Used/Avail/Use%/Mounted-on.
+# The default output is reasonable; the noise is `tmpfs` and `devtmpfs`
+# rows with tiny usage that bloat the table without adding signal.
+
+[filters.df]
+description = "Strip near-empty tmpfs/devtmpfs rows from df output."
+match_command = "^df\\b"
+min_savings_pct = 15
+strip_lines_matching = [
+  # tmpfs / devtmpfs / udev with single-digit% use — overwhelmingly noise.
+  "^(tmpfs|devtmpfs|udev|none)\\s+\\S+\\s+\\S+\\s+\\S+\\s+[0-9]%\\s+",
+]
+max_lines = 40
+
+[[tests.df]]
+name = "strips empty tmpfs lines"
+input = """Filesystem Size Used Avail Use% Mounted on
+/dev/sda1 100G 20G 80G 20% /
+tmpfs 64M 0 64M 0% /run
+devtmpfs 100M 0 100M 0% /dev
+udev 100M 0 100M 0% /dev
+"""
+expected_contains = ["/dev/sda1", "100G"]
+
+[[tests.df]]
+name = "keeps high-use tmpfs"
+input = """Filesystem Size Used Avail Use% Mounted on
+tmpfs 1G 800M 200M 80% /tmp
+"""
+expected_contains = ["tmpfs", "80%"]

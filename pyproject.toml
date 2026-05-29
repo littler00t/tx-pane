@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tx-pane"
+version = "1.5.0"
+description = "A tmux pane controller for AI agents: reliable exit codes, per-pane run history, and ~50% smaller command output."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Hans Hansen" }]
+keywords = ["tmux", "cli", "agents", "llm", "terminal", "automation"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Terminals",
+]
+dependencies = [
+    "libtmux>=0.28",
+    "click>=8.1",
+    "tomli-w>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "coverage>=7"]
+
+[project.scripts]
+tx = "tx_core.cli:main"
+
+[tool.setuptools]
+packages = ["tx_core", "tx_core.commands", "tx_compact"]
+
+[tool.setuptools.package-data]
+# Builtin normalizers are loaded from real filesystem paths next to the
+# tx_compact package (see tx_compact/registry.py), so they must ship as data.
+tx_compact = ["builtin_filters/*.toml", "builtin_plugins/*.py"]

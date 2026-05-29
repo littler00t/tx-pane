@@ -1,0 +1,23 @@
+# Coverage config — used by both in-process pytest-cov runs and
+# subprocess-aware runs (`tx_runner` invokes ./tx with sitecustomize +
+# COVERAGE_PROCESS_START, producing per-process `.coverage.<pid>`
+# fragments that `coverage combine` merges).
+[run]
+source = tx_core
+parallel = True
+data_file = .coverage
+sigterm = True
+# Don't trace test modules, command/script entry shims, or the auto-loaded
+# sitecustomize bootstrap.
+omit =
+    tests/*
+    /workspace/.coverage-site/sitecustomize.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    raise NotImplementedError
+    \\.\\.\\.
+show_missing = True
+skip_empty = True

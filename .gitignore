@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# packaging build artifacts
+build/
+dist/
+*.egg-info/
+
+# coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# uv
+.venv/
+uv.lock
+.uv-cache/
+
+# editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# tx runtime state (in case anyone runs tx from this directory with TX_HOME=.)
+.tx/
+
+# local-only working dirs
+plans/
+blog/

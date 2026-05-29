@@ -1,0 +1,7 @@
+# Override Semgrep's built-in defaults (which exclude `tests/`) so that
+# our rule fixtures under semgrep/tests/ are scanned by semgrep test.
+# Also re-include nothing else: we want semgrep to follow .gitignore for
+# real source paths, but never let it skip our intentionally-bad fixture
+# files. A single `!path` in this file flips off semgrep's default tests/
+# exclusion.
+!semgrep/tests/

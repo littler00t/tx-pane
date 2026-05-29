@@ -1,0 +1,125 @@
+rules:
+  # ----------------------------------------------------------------------
+  # tx-no-shell-true
+  # ----------------------------------------------------------------------
+  # tx exclusively uses argv lists for subprocess invocation, never the
+  # shell. Any shell=True / os.system / os.popen pulls the arguments
+  # through /bin/sh, which is the textbook injection surface.
+  - id: tx-no-shell-true
+    severity: ERROR
+    languages: [python]
+    message: >-
+      tx forbids shell=True / os.system / os.popen — pass argv as a list to
+      subprocess.run / Popen instead. The codebase relies on argv-only
+      invocation for safety; routing through the shell is an injection vector.
+    patterns:
+      - pattern-either:
+          - pattern: subprocess.run(..., shell=True, ...)
+          - pattern: subprocess.Popen(..., shell=True, ...)
+          - pattern: subprocess.call(..., shell=True, ...)
+          - pattern: subprocess.check_call(..., shell=True, ...)
+          - pattern: subprocess.check_output(..., shell=True, ...)
+          - pattern: os.system(...)
+          - pattern: os.popen(...)
+
+  # ----------------------------------------------------------------------
+  # tx-shell-injection-in-send-keys
+  # ----------------------------------------------------------------------
+  # The intended path for sending a user command to a pane is
+  # `wrap_command(cmd, run_id)` (which sets __tx_run_id then runs the
+  # command verbatim) followed by `send_keys(wrapped, literal=True)`.
+  # Building a shell snippet by f-string-interpolating CLI args (`cmd`,
+  # `pane`, `text`) and pushing it through send_keys bypasses that.
+  - id: tx-shell-injection-in-send-keys
+    severity: ERROR
+    languages: [python]
+    message: >-
+      Do not interpolate user-controlled CLI args into a shell snippet sent
+      via send_keys. Use `wrap_command(cmd, run_id)` + `send_keys(wrapped,
+      literal=True)` (see tx_core/runner.py:_start_run).
+    patterns:
+      - pattern-either:
+          - pattern: $PANE.send_keys(f"...{cmd}...", ...)
+          - pattern: $PANE.send_keys(f"...{text}...", ...)
+          - pattern: $PANE.send_keys("..." + $X + "...", ...)
+          - pattern: $PANE.send_keys($X + "...", ...)
+          - pattern: $PANE.send_keys("..." + $X, ...)
+          - pattern: $PANE.send_keys("..." % $X, ...)
+
+  # ----------------------------------------------------------------------
+  # tx-paste-buffer-via-tempfile
+  # ----------------------------------------------------------------------
+  # Bytes written to a pane via tmux's paste-buffer must traverse a tempfile
+  # loaded with `server.cmd("load-buffer", "-b", name, path)` — never via
+  # libtmux's argv encoding. Canonical: tx_core/runner.py:_internal_paste_then_marker.
+  - id: tx-paste-buffer-via-tempfile
+    severity: ERROR
+    languages: [python]
+    message: >-
+      paste-buffer must be preceded by a load-buffer that points to a
+      tempfile-staged path. Inlining the bytes via libtmux's argv encoding
+      breaks for any non-ASCII / large payload.
+    patterns:
+      - pattern: $PANE.cmd("paste-buffer", ...)
+      - pattern-not-inside: |
+          def $F(...):
+              ...
+              $SERVER.cmd("load-buffer", ...)
+              ...
+
+  # ----------------------------------------------------------------------
+  # tx-sudo-needs-bracketed-paste
+  # ----------------------------------------------------------------------
+  # `sudo -S` requires the password to be fed via send-secret machinery
+  # (stop_pipe_pane → send_keys → redaction-placeholder → start_pipe_pane).
+  # Sending the password via plain send_keys without first stopping pipe-pane
+  # would land the secret in the pane log.
+  - id: tx-sudo-needs-bracketed-paste
+    severity: ERROR
+    languages: [python]
+    message: >-
+      sudo -S password must be sent via the send-secret pattern
+      (stop_pipe_pane → send_keys → redaction-placeholder → start_pipe_pane);
+      see tx_core/commands/input.py:cmd_sudo. Plain send_keys leaks the
+      secret into the pane log.
+    patterns:
+      - pattern: |
+          $WRAPPED = $RHS
+          ...
+          $PANE.send_keys($PASSWORD, ...)
+      - metavariable-regex:
+          metavariable: $RHS
+          regex: '.*sudo -S.*'
+      - pattern-not: |
+          $WRAPPED = $RHS
+          ...
+          stop_pipe_pane(...)
+          ...
+          $PANE.send_keys($PASSWORD, ...)
+      - focus-metavariable: $PANE
+
+  # ----------------------------------------------------------------------
+  # tx-no-stale-write-on-failed-mv
+  # ----------------------------------------------------------------------
+  # `tx write` stages a file at `<dir>/.tx-write-<rand>` then `mv -f`s it
+  # into place. The sha256-verify between stage and move is what makes the
+  # swap safe: without it a corrupted upload silently replaces the target.
+  # Flag any `mv` step that omits the surrounding sha256-verify.
+  - id: tx-no-stale-write-on-failed-mv
+    severity: ERROR
+    languages: [python]
+    message: >-
+      Atomic file deploy must sha256-verify the staged content before
+      `mv`-ing it into place. See tx_core/commands/admin.py:cmd_write for
+      the canonical sha256-verify → optional chmod/chown → mv sequence.
+    patterns:
+      - pattern: |
+          $E1, $O1 = step($LBL, $CMD)
+      - metavariable-regex:
+          metavariable: $CMD
+          regex: '.*mv -f.*'
+      - pattern-not-inside: |
+          def $F(...):
+              ...
+              step("sha256-verify", ...)
+              ...

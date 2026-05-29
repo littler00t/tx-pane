@@ -1,0 +1,10 @@
+.git
+.pytest_cache
+__pycache__
+.dockerignore
+Dockerfile
+run-tests-docker
+prompt_impl_stage*.md
+*.swp
+.DS_Store
+.tx

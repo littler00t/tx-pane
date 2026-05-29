@@ -1,0 +1,16 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "pytest>=7",
+#     "libtmux>=0.28",
+#     "click>=8.1",
+#     "tomli-w>=1.0",
+# ]
+# ///
+"""Test runner — forwards args to pytest. Defaults to tests/ if no args given."""
+import sys
+import pytest
+
+args = sys.argv[1:] if sys.argv[1:] else ["tests/"]
+sys.exit(pytest.main(args))

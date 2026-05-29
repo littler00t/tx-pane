@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Run the tx-specific semgrep ruleset across the source tree.
+#
+# Usage:
+#   ./scripts/semgrep              # scan tx + tx_core/ + tx_compact/
+#   ./scripts/semgrep --test       # run the rule fixtures under semgrep/tests/
+#
+# Exits non-zero on any finding so this can be wired into CI as-is.
+# Today the script is opt-in (developer runs it locally); when the
+# ruleset stabilises it will become a CI gate.
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+if ! command -v semgrep >/dev/null 2>&1; then
+    cat <<'EOF' >&2
+semgrep not found on PATH. Install it into a uv-managed env (recommended) so
+it doesn't pollute the host:
+
+    uv tool install semgrep
+
+or via pipx / brew / pip — see https://semgrep.dev/docs/getting-started/.
+EOF
+    exit 127
+fi
+
+if [[ "${1:-}" == "--test" ]]; then
+    exec semgrep scan --test --config semgrep semgrep/tests
+fi
+
+exec semgrep scan --config semgrep/ --error tx tx_core/ tx_compact/

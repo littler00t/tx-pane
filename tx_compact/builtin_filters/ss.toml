@@ -1,0 +1,39 @@
+schema_version = 1
+
+# `ss -tulnp` and friends emit one header row + per-socket rows with
+# columns: Netid State Recv-Q Send-Q Local-Addr:Port Peer-Addr:Port Process.
+# For LISTEN-only output (the canonical `-l` case), State=LISTEN,
+# Recv-Q/Send-Q=0 0, and Peer=*:* — pure noise. Strip those columns +
+# the header. We keep proto, local addr, process; agents almost always
+# want "what's listening on port N + which pid".
+#
+# Match anchors on the head word `ss`. Pipeline rejection in the engine
+# means `ss -tulnp | grep 22` won't trigger.
+
+[filters.ss]
+description = "Compact `ss` socket-listing output: drop header + redundant State/Q/Peer columns."
+match_command = "^ss\\b"
+min_savings_pct = 30
+strip_lines_matching = [
+  "^Netid\\s+State\\s+",
+  "^State\\s+Recv-Q\\s+",
+]
+replace = [
+  # Each row: proto State Recv-Q Send-Q Local Peer [Process]
+  # Drop proto + Recv-Q + Send-Q + Peer; keep State + Local + remainder
+  # (process info etc).
+  { pattern = "^\\S+\\s+(LISTEN|UNCONN|ESTAB|TIME-WAIT|SYN-SENT)\\s+\\d+\\s+\\d+\\s+(\\S+)\\s+\\S+\\s*", with = "\\1 \\2 " },
+]
+max_lines = 60
+
+[[tests.ss]]
+name = "strips header and collapses listen row"
+input = """Netid State Recv-Q Send-Q Local Address:Port Peer Address:Port Process
+tcp   LISTEN 0      128    0.0.0.0:22      0.0.0.0:*     users:((\"sshd\",pid=1234,fd=3))
+"""
+expected_contains = ["LISTEN 0.0.0.0:22"]
+
+[[tests.ss]]
+name = "no LISTEN content survives header strip alone"
+input = "Netid State Recv-Q Send-Q Local Address:Port Peer Address:Port Process\n"
+expected_contains = []

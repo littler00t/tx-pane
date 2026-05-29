@@ -1,0 +1,25 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "libtmux>=0.28",
+#     "click>=8.1",
+#     "tomli-w>=1.0",
+# ]
+# ///
+"""tx — tmux pane controller for Claude Code."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+# tx_core (and tx_compact) live as sibling packages next to this script. uv
+# runs the script without putting the script's directory on sys.path
+# automatically, so insert it before importing.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from tx_core.cli import main  # noqa: E402
+
+if __name__ == "__main__":
+    main()

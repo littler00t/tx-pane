@@ -1,0 +1,38 @@
+schema_version = 1
+
+# `smartctl -H /dev/sdX` happy path:
+#   smartctl 7.3 ...
+#   ===...===
+#   SMART overall-health self-assessment test result: PASSED
+# Collapse to one line on PASSED. On FAILED, fall through to full output
+# so the agent sees the failure reason.
+
+[filters.smartctl-health]
+description = "Collapse smartctl -H to PASSED/FAILED one-liner."
+match_command = "^smartctl\\s+(-H|--health\\b)"
+match_output = [
+  { pattern = "SMART overall-health self-assessment test result:\\s+PASSED", message = "smartctl: PASSED", unless = "FAILED|Pending|Reallocated" },
+]
+strip_lines_matching = [
+  "^$",
+]
+max_lines = 20
+
+[[tests.smartctl-health]]
+name = "passed → one liner"
+input = """smartctl 7.3 2022-02-28 r5338 [x86_64-linux-5.10.0-21-amd64] (local build)
+Copyright (C) 2002-22, Bruce Allen, smartmontools.org
+
+=== START OF READ SMART DATA SECTION ===
+SMART overall-health self-assessment test result: PASSED
+
+"""
+expected = "smartctl: PASSED"
+
+[[tests.smartctl-health]]
+name = "failed → full output"
+input = """=== START OF READ SMART DATA SECTION ===
+SMART overall-health self-assessment test result: FAILED!
+Failure reason: Reallocated_Sector_Ct exceeded threshold
+"""
+expected_contains = ["FAILED", "Reallocated"]

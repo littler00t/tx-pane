@@ -1,0 +1,29 @@
+schema_version = 1
+
+# `systemctl list-units` table:
+#   UNIT                LOAD   ACTIVE   SUB     DESCRIPTION
+#   nginx.service       loaded active   running A high performance web server
+# Drop DESCRIPTION column (the verbose part) and the legend; the L1
+# banner registry already strips the LOAD=/ACTIVE=/SUB= legend lines.
+
+[filters.systemctl-list-units]
+description = "Compact systemctl list-units to one row per unit (LOAD column dropped)."
+match_command = "^systemctl\\s+list-units\\b"
+strip_lines_matching = [
+  "^$",
+  "^\\s*$",
+  "^\\s+UNIT\\s+LOAD",
+]
+replace = [
+  # Each row: <unit>  loaded  <state>  <sub>  <description...>
+  # Keep <unit> <state> <sub>; drop LOAD (always "loaded") + description.
+  { pattern = "^(\\S+\\.\\S+)\\s+loaded\\s+(\\S+)\\s+(\\S+)\\s+.*$", with = "\\1\t\\2\t\\3" },
+]
+max_lines = 100
+
+[[tests.systemctl-list-units]]
+name = "drops description"
+input = """nginx.service        loaded active running A high performance web server
+sshd.service         loaded active running OpenBSD Secure Shell server
+"""
+expected_contains = ["nginx.service\tactive\trunning", "sshd.service\tactive\trunning"]

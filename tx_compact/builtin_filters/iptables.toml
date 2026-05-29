@@ -1,0 +1,30 @@
+schema_version = 1
+
+# `iptables -L -n -v` prints one chain block per chain, each with
+#   Chain X (policy ACCEPT, 0 packets, 0 bytes)
+#   pkts bytes target prot opt in     out     source     destination
+#   <rule rows>
+# We strip the noisy column header line + the per-rule pkts/bytes
+# columns (they change per call, terrible for L5 dedup). Empty docker
+# chains are stripped if they have no rules.
+
+[filters.iptables]
+description = "Strip iptables column headers + per-call counters."
+match_command = "^iptables\\b"
+strip_lines_matching = [
+  "^\\s*pkts\\s+bytes\\s+target\\b",   # column header
+]
+replace = [
+  # Drop pkts+bytes from each rule: leading whitespace, two numbers, then target.
+  { pattern = "^(\\s*)\\d+\\s+\\d+(K|M)?\\s+(\\S+\\s+)", with = "\\1\\3" },
+]
+max_lines = 200
+
+[[tests.iptables]]
+name = "drops pkts/bytes columns"
+input = """Chain INPUT (policy ACCEPT)
+ pkts bytes target  prot opt in  out source destination
+    0     0 ACCEPT  tcp  --  *   *   0.0.0.0/0 0.0.0.0/0 tcp dpt:22
+   42  3.2K DROP    icmp --  *   *   0.0.0.0/0 0.0.0.0/0
+"""
+expected_contains = ["ACCEPT", "DROP", "Chain INPUT"]

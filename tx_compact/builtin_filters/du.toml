@@ -1,0 +1,13 @@
+schema_version = 1
+
+[filters.du]
+description = "Cap du output at 50 rows (du is usually only-trimming verbose paths)."
+match_command = "^du\\b"
+min_savings_pct = 0
+truncate_lines_at = 200
+max_lines = 50
+
+[[tests.du]]
+name = "passes small input through"
+input = "4.0K\t./src\n8.0K\t./tests\n16K\t."
+expected_contains = ["./src", "./tests"]

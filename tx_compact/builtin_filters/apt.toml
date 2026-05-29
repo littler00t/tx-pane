@@ -1,0 +1,28 @@
+schema_version = 1
+
+# `apt list --upgradable` opens with the now-famous
+# "WARNING: apt does not have a stable CLI interface" line and a
+# `Listing... Done` banner. Both are dropped by the L1 banner registry,
+# but here we additionally compact each package line:
+#   <pkg>/<repo> <new-ver> <arch> [upgradable from: <old-ver>]
+#   → <pkg>: <old-ver> → <new-ver>
+
+[filters.apt-list]
+description = "Compact `apt list --upgradable` package rows."
+match_command = "^apt\\s+(list|upgrade|update)\\b"
+strip_lines_matching = [
+  "^WARNING: apt",
+  "^Listing\\.\\.\\.",
+]
+replace = [
+  { pattern = "^(\\S+)/\\S+\\s+(\\S+)\\s+\\S+\\s+\\[upgradable from:\\s*([^\\]]+?)\\s*\\]", with = "\\1: \\3 → \\2" },
+]
+max_lines = 100
+
+[[tests.apt-list]]
+name = "compacts upgradable line"
+input = """Listing... Done
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+nginx/jammy 1.18.0-6ubuntu14 amd64 [upgradable from: 1.18.0-6ubuntu13]
+"""
+expected_contains = ["nginx: 1.18.0-6ubuntu13 → 1.18.0-6ubuntu14"]

@@ -1,0 +1,25 @@
+schema_version = 1
+
+# `virsh list --all` prints:
+#    Id   Name     State
+#   ---------------------------
+#    1    vm-foo   running
+#    -    vm-bar   shut off
+# Strip the dashes line and excess whitespace.
+
+[filters.virsh-list]
+description = "Strip virsh list separator lines."
+match_command = "^virsh\\s+(list|net-list|pool-list)\\b"
+strip_lines_matching = [
+  "^[-\\s]+$",
+]
+max_lines = 100
+
+[[tests.virsh-list]]
+name = "drops dashes"
+input = """ Id   Name     State
+---------------------------
+ 1    vm-foo   running
+ -    vm-bar   shut off
+"""
+expected_contains = ["vm-foo", "vm-bar"]

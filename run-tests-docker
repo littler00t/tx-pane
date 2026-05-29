@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Build the tx-tests image (if needed) and run the suite inside it.
+#
+# Flags:
+#   --rebuild   force docker build --no-cache
+#   --mount     bind-mount $(pwd) over /work for dev-loop edits
+#
+# Any remaining args pass through to pytest (e.g. -k pattern, paths).
+# DOCKER env var lets you swap in podman, etc.
+#
+# Examples:
+#   ./run-tests-docker -q
+#   ./run-tests-docker tests/test_stage4.py
+#   ./run-tests-docker --rebuild -q
+#   ./run-tests-docker --mount tests/test_e2e_plan.py::test_T_5_5_pipefail_marker_survives
+
+set -euo pipefail
+
+IMAGE="tx-tests:latest"
+DOCKER="${DOCKER:-docker}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+build_args=()
+run_args=()
+mount=0
+for a in "$@"; do
+  case "$a" in
+    --rebuild) build_args+=("--no-cache") ;;
+    --mount)   mount=1 ;;
+    *)         run_args+=("$a") ;;
+  esac
+done
+
+"$DOCKER" build ${build_args[@]+"${build_args[@]}"} -t "$IMAGE" "$SCRIPT_DIR"
+
+mount_args=()
+if [ "$mount" -eq 1 ]; then
+  mount_args=(-v "$SCRIPT_DIR:/work")
+fi
+
+exec "$DOCKER" run --rm \
+  ${mount_args[@]+"${mount_args[@]}"} \
+  "$IMAGE" \
+  ${run_args[@]+"${run_args[@]}"}
