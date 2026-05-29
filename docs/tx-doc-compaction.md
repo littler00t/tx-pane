@@ -174,7 +174,7 @@ raises twice consecutively is disabled for the rest of the `tx-pane` process
 lifetime with a stderr warning naming the file.
 
 Sample outputs for every normalizer: `compaction_samples.md`
-(headline: 49.9% saved across the canonical set).
+(headline: 45.9% saved across the canonical set).
 
 ## L5 cross-call dedup (default disabled)
 

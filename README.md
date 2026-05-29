@@ -2,8 +2,10 @@
 
 `tx-pane` turns a tmux server into a structured terminal-execution backend that
 an LLM (or any other automated caller) can drive safely. The agent gets
-reliable exit codes, per-pane run history, and ~50% smaller output for
-most commands; the human still sees an ordinary tmux session and can
+reliable exit codes, per-pane run history, and substantially smaller
+output on common commands — about 46% fewer bytes across a
+[sampled set of 18 tools](docs/compaction_samples.md), and much more on
+noisy ones; the human still sees an ordinary tmux session and can
 attach to watch or take over at any time.
 
 ```
@@ -30,7 +32,7 @@ the same problems over and over:
 |---|---|---|
 | **"Did the command finish?"** | Prompt-pattern detection breaks on multi-line prompts, custom PS1s, interactive tools. | Installs a shell hook (`PROMPT_COMMAND` / `precmd` / `fish_postexec`) that emits a sentinel line with a run-id + exit code on every prompt return. Markers fire even when the user pressed `C-c`. |
 | **"What's the exit code?"** | The default is `?` or a guess from the last token. | Real exit codes via the marker — exposed as `[exit:N]` or `--json.exit`. |
-| **"Output is huge — agents burn tokens reading it."** | Every `kubectl get pods`, `journalctl -u nginx`, `zpool status` returns hundreds of lines of mostly-redundant text. | 18 per-tool normalizers + 5 generic layers (banner strip, whitespace, repeated-line collapse, token-budget head/tail elision, optional cross-call dedup). Median savings: 45–60%. Elided content is recoverable via an `h-XXXX` handle. |
+| **"Output is huge — agents burn tokens reading it."** | Every `kubectl get pods`, `journalctl -u nginx`, `zpool status` returns hundreds of lines of mostly-redundant text. | 18 per-tool normalizers + 5 generic layers (banner strip, whitespace, repeated-line collapse, token-budget head/tail elision, optional cross-call dedup). Measured ≈46% byte savings across the [18 sampled tools](docs/compaction_samples.md) (range 1–97%, tool-dependent). Elided content is recoverable via an `h-XXXX` handle. |
 | **"I want to run two things at once."** | Spawning two shells means losing state, env, cwd. | Each `tx-pane new` creates a named pane that survives across invocations. Run async with `tx-pane exec`; check back with `tx-pane wait-run`. |
 | **"The pane is busy."** | Race between agent and prior command. | Refuse-on-busy by default; explicit `--queue` / `--kill-and-run` / `--stdin` resolution. No `--force` footgun. |
 | **"Safety."** | Allowlist? Audit log? Redaction? | `[security]` config: per-pane allowlists, stdout redaction patterns, confirm-pattern prompts. Secrets flow via `tx-pane send-secret` (stdin only, never logged). |
