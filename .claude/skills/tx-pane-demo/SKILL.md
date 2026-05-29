@@ -7,6 +7,7 @@ description: >-
   human-in-the-loop handoff/resume flow, or to pair with the agent on a shared
   pane.
 argument-hint: "(optional: a pane name)"
+disable-model-invocation: true
 allowed-tools:
   - Bash(./tx-pane *)
   - Bash(tx-pane *)

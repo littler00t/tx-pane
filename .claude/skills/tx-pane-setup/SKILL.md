@@ -7,6 +7,7 @@ description: >-
   environment (uv, tmux, Python 3.11+) is ready. Symlinks the command, creates
   the default config, and runs a real marker-protocol smoke test.
 argument-hint: "(no args)"
+disable-model-invocation: true
 allowed-tools:
   - Bash(./tx-pane *)
   - Bash(tx-pane *)
